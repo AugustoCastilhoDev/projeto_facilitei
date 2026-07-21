@@ -1,0 +1,10 @@
+# Copie este arquivo para "application-local.yml" (mesma pasta) e preencha
+# com sua chave real do sandbox Asaas. application-local.yml esta no
+# .gitignore - nunca sera commitado.
+#
+# Para ativar: mvn spring-boot:run -Dspring-boot.run.profiles=local
+# (ou SPRING_PROFILES_ACTIVE=local se estiver rodando o jar diretamente)
+
+facilitei:
+  asaas:
+    api-key: COLE_AQUI_SUA_CHAVE_SANDBOX_DO_ASAAS

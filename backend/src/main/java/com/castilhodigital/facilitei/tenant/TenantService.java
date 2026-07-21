@@ -1,0 +1,45 @@
+package com.castilhodigital.facilitei.tenant;
+
+import com.castilhodigital.facilitei.common.exception.EntidadeNaoEncontradaException;
+import com.castilhodigital.facilitei.common.exception.RegraDeNegocioException;
+import java.time.LocalTime;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class TenantService {
+
+    private final TenantRepository tenantRepository;
+
+    @Transactional
+    public Tenant registrar(String nome, String slug, LocalTime horarioAbertura, LocalTime horarioFechamento) {
+        if (horarioAbertura == null || horarioFechamento == null || !horarioAbertura.isBefore(horarioFechamento)) {
+            throw new RegraDeNegocioException("Horario de abertura deve ser anterior ao horario de fechamento.");
+        }
+        if (tenantRepository.existsBySlug(slug)) {
+            throw new RegraDeNegocioException("Ja existe um tenant com o slug '" + slug + "'.");
+        }
+
+        Tenant tenant = new Tenant();
+        tenant.setNome(nome);
+        tenant.setSlug(slug);
+        tenant.setHorarioAbertura(horarioAbertura);
+        tenant.setHorarioFechamento(horarioFechamento);
+        return tenantRepository.save(tenant);
+    }
+
+    @Transactional(readOnly = true)
+    public Tenant buscarPorSlug(String slug) {
+        return tenantRepository.findBySlug(slug)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("Tenant nao encontrado para o slug '" + slug + "'."));
+    }
+
+    @Transactional(readOnly = true)
+    public Tenant buscarPorId(Long id) {
+        return tenantRepository.findById(id)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("Tenant nao encontrado (id=" + id + ")."));
+    }
+
+}

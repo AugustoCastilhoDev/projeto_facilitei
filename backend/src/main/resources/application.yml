@@ -1,0 +1,45 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: facilitei-backend
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:facilitei}
+    username: ${DB_USER:facilitei}
+    password: ${DB_PASSWORD:facilitei}
+
+  jpa:
+    # ddl-auto=validate: o schema e sempre criado/alterado pelo Flyway (fonte
+    # unica de verdade), o Hibernate so confere se a entidade bate com a tabela.
+    # Isso evita divergencia entre "o que o Java acha que existe" e o banco real.
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+facilitei:
+  jwt:
+    # Em producao, JWT_SECRET deve vir de variavel de ambiente/secret manager,
+    # nunca do valor default abaixo.
+    secret: ${JWT_SECRET:facilitei-local-dev-secret-troque-em-producao-0123456789}
+    expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+
+  asaas:
+    # https://api-sandbox.asaas.com/v3 confirmado na documentacao oficial
+    # (docs.asaas.com) - nao confundir com dominios antigos/de terceiros que
+    # aparecem em buscas (ex.: sandbox.asaas.com/api/v3, que e outra API).
+    base-url: ${ASAAS_BASE_URL:https://api-sandbox.asaas.com/v3}
+    api-key: ${ASAAS_API_KEY:}
+    webhook-token: ${ASAAS_WEBHOOK_TOKEN:facilitei-local-dev-webhook-token}
+
+logging:
+  level:
+    com.castilhodigital.facilitei: DEBUG

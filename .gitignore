@@ -1,0 +1,23 @@
+# Backend (Maven)
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# Frontend (Angular / Node) - preparado para as proximas etapas
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+
+# Variaveis de ambiente / segredos locais
+.env
+.env.*
+!.env.example
+backend/src/main/resources/application-local.yml
+
+# SO
+.DS_Store
+Thumbs.db
