@@ -12,6 +12,10 @@ import org.springframework.web.client.RestClient;
  * "access_token" (nao "Authorization: Bearer") - detalhe confirmado na
  * documentacao oficial (docs.asaas.com), diferente do padrao mais comum de
  * outras APIs REST.
+ *
+ * O access_token NAO e um header fixo aqui: cada tenant tem sua propria
+ * conta Asaas (modelo BYOPP), entao a chave e passada por chamada em
+ * AsaasClient, resolvida a partir do tenant dono do agendamento.
  */
 @Configuration
 @EnableConfigurationProperties(AsaasProperties.class)
@@ -24,7 +28,6 @@ public class AsaasConfig {
     public RestClient asaasRestClient(RestClient.Builder builder) {
         return builder
                 .baseUrl(asaasProperties.baseUrl())
-                .defaultHeader("access_token", asaasProperties.apiKey())
                 .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader("User-Agent", "Facilitei-MVP")
                 .build();

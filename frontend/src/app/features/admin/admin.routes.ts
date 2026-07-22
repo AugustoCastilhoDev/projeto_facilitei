@@ -9,6 +9,7 @@ export const ADMIN_ROUTES: Routes = [
       { path: '', redirectTo: 'agenda', pathMatch: 'full' },
       { path: 'agenda', loadComponent: () => import('./agenda/agenda').then((m) => m.Agenda) },
       { path: 'servicos', loadComponent: () => import('./servicos/servicos').then((m) => m.Servicos) },
+      { path: 'pagamentos', loadComponent: () => import('./pagamentos/pagamentos').then((m) => m.Pagamentos) },
     ],
   },
 ];

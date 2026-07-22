@@ -2,7 +2,7 @@
 
 > Como usar: marque `[x]` conforme for concluindo cada item. Sinta-se livre para editar, reordenar, adicionar notas/datas ou remover itens que deixarem de fazer sentido — este documento é vivo, não um contrato fechado.
 
-O que existe hoje é uma base técnica sólida (agendamento multi-tenant, sinal via Pix, painel admin, ~60 testes automatizados). O que falta para vender de verdade não é código — é modelo de negócio, dinheiro caindo no lugar certo, e um mínimo de jurídico. Duas coisas são **bloqueadoras** antes do primeiro cliente pagante: split de pagamento via Asaas e um mínimo de Termos de Uso/LGPD.
+O que existe hoje é uma base técnica sólida (agendamento multi-tenant, sinal via Pix, painel admin, onboarding self-service, ~65 testes automatizados). O sinal já cai direto na conta Asaas de cada negócio (modelo "traga sua própria conta de pagamento" — BYOPP, ver README) — decisão tomada no lugar do split/marketplace originalmente cogitado, porque não exige formalização prévia com a Asaas nem custodia dinheiro de terceiros. O que ainda falta para vender de verdade não é código — é um mínimo de jurídico (Termos de Uso/LGPD) e decidir onde hospedar em produção.
 
 Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto).
 
@@ -12,9 +12,9 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 
 | Hoje (MVP) | Produto vendável |
 |---|---|
-| Cadastro de negócio só via API (curl) | Onboarding self-service com formulário |
+| ~~Cadastro de negócio só via API (curl)~~ Onboarding self-service ✅ | — |
 | 1 profissional/cadeira por negócio | Múltiplos profissionais, cada um com sua agenda |
-| Sinal cai na conta Asaas da plataforma | Split automático para a conta do próprio negócio |
+| ~~Sinal cai na conta Asaas da plataforma~~ Sinal direto na conta do negócio (BYOPP) ✅ | Onboarding assistido/automatizado da conta Asaas do tenant (hoje é manual, copiar/colar a chave) |
 | Sem cobrança pela assinatura do SaaS | Billing recorrente, planos e trial |
 | Roda só localmente (docker compose) | Deploy em produção, com monitoramento |
 | Sem Termos de Uso nem Política de Privacidade | LGPD tratada, contrato entre plataforma e negócio |
@@ -39,10 +39,10 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 - [x] Hardening básico: rate limiting no login, segredos fora de arquivo `.yml` (usar secrets manager do provedor de hospedagem)
 
 ### Jurídico & financeiro
-- [ ] Conversar com contador sobre CNPJ e enquadramento tributário correto (MEI provavelmente não serve para intermediar pagamento de terceiros)
-- [ ] Escrever/contratar Termos de Uso + Política de Privacidade (LGPD)
-- [ ] Formalizar com a Asaas o modelo de "plataforma com split de pagamento" (cadastro específico, diferente de conta comum)
-- [ ] Implementar o split de pagamento em si (subconta Asaas por tenant)
+- [ ] Conversar com contador sobre CNPJ e enquadramento tributário correto
+- [ ] Escrever/contratar Termos de Uso + Política de Privacidade (LGPD) — inclui deixar claro que a Facilitei não custodia o pagamento do sinal (modelo BYOPP), só a assinatura do SaaS
+- ~~Formalizar com a Asaas o modelo de "plataforma com split de pagamento"~~ — decidido não seguir por esse caminho: o modelo BYOPP não exige formalização nenhuma com a Asaas
+- [x] Implementar o recebimento direto na conta do próprio tenant (modelo BYOPP: chave Asaas por tenant, cifrada em repouso, webhook autenticado por tenant) — ver README/`docs/configurar-pagamentos.md`
 
 ### Go-to-market
 - [ ] Nada de aquisição paga ainda — só continuar validando com early adopters da Fase 0
@@ -94,20 +94,19 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 
 | Modelo | Como funciona | Trade-off |
 |---|---|---|
-| Assinatura fixa | R$ 49–149/mês por plano, limitado por número de profissionais | Receita previsível, mas é barreira de entrada para negócio pequeno |
-| Taxa por transação | 2–4% sobre cada sinal Pix cobrado | Fácil de vender ("só paga se usar"), mas receita variável e difícil de prever |
-| **Híbrido (recomendado)** | Assinatura baixa + taxa pequena por transação, trial de 14–30 dias | Mais complexo de comunicar, mas é o modelo dos concorrentes já validados no Brasil |
+| **Assinatura fixa (implementado como BYOPP)** | R$ 49–149/mês por plano, limitado por número de profissionais | Receita previsível, mas é barreira de entrada para negócio pequeno. É o único modelo compatível com o BYOPP tal como está — como o sinal cai direto na conta do tenant, a plataforma não tem como cobrar automaticamente uma taxa % por transação |
+| Taxa por transação | 2–4% sobre cada sinal Pix cobrado | Exigiria voltar ao modelo de split/marketplace (decidido não seguir por enquanto) para conseguir reter uma fatia automaticamente |
+| Híbrido | Assinatura baixa + taxa pequena por transação, trial de 14–30 dias | Modelo dos concorrentes já validados no Brasil, mas inviável sem split — reavaliar só se o BYOPP se mostrar insuficiente |
 
 ## Riscos principais
 
-- **Regulatório**: custódia e split de dinheiro de terceiros tem implicação legal real — não pular essa parte por pressa de lançar.
+- **Regulatório**: reduzido pelo modelo BYOPP (a plataforma nunca custodia o sinal do cliente final), mas ainda existe jurídico real a resolver — contrato definindo quem é controlador/operador dos dados (LGPD) e Termos de Uso deixando claro esse modelo de recebimento.
 - **Concorrência já estabelecida**: Trinks, Fixed, Simples Agenda e Booksy já são conhecidos no Brasil — o diferencial precisa ficar claro no primeiro contato com o cliente.
 - **Custo de aquisição**: pequenos negócios têm ticket baixo e demandam bastante suporte — validar o custo real de conquistar um cliente antes de escalar investimento em marketing.
 
 ## Primeiros passos concretos (próximas 2–3 semanas)
 
-1. [ ] Conversar com um contador sobre CNPJ e enquadramento, antes de processar dinheiro de terceiros de verdade
-2. [ ] Abrir uma conversa com o suporte da Asaas sobre o modelo de "plataforma com split de pagamento"
-3. [ ] Escrever (ou contratar) uma versão mínima de Termos de Uso e Política de Privacidade
-4. [ ] Escolher onde hospedar em produção e subir o ambiente com domínio e HTTPS
-5. [ ] Conversar com 5 donos de barbearia/salão reais — mostrar o produto, entender objeções, ainda não vender
+1. [ ] Conversar com um contador sobre CNPJ e enquadramento
+2. [ ] Escrever (ou contratar) uma versão mínima de Termos de Uso e Política de Privacidade
+3. [ ] Escolher onde hospedar em produção e subir o ambiente com domínio e HTTPS
+4. [ ] Conversar com 5 donos de barbearia/salão reais — mostrar o produto (inclusive como configurar o recebimento Pix), entender objeções, ainda não vender

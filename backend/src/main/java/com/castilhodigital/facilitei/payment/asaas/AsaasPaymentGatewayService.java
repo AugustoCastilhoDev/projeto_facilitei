@@ -18,24 +18,24 @@ public class AsaasPaymentGatewayService implements PaymentGatewayService {
     private final AsaasClient asaasClient;
 
     @Override
-    public PixChargeResult criarCobrancaPix(PixChargeRequest request) {
+    public PixChargeResult criarCobrancaPix(String apiKey, PixChargeRequest request) {
         String customerId = asaasClient.criarCliente(
-                request.clienteNome(), request.clienteTelefone(), request.clienteCpfCnpj());
+                apiKey, request.clienteNome(), request.clienteTelefone(), request.clienteCpfCnpj());
 
         // vencimento amanha: da ao cliente uma janela de ~24h para pagar o
         // sinal via Pix antes da cobranca expirar.
         LocalDate vencimento = LocalDate.now(ZONE_ID).plusDays(1);
         AsaasPaymentResponse payment = asaasClient.criarCobrancaPix(
-                customerId, request.valor(), vencimento, request.referenciaExterna());
+                apiKey, customerId, request.valor(), vencimento, request.referenciaExterna());
 
-        AsaasPixQrCodeResponse qrCode = asaasClient.buscarQrCodePix(payment.id());
+        AsaasPixQrCodeResponse qrCode = asaasClient.buscarQrCodePix(apiKey, payment.id());
 
         return new PixChargeResult(payment.id(), qrCode.payload(), qrCode.encodedImage());
     }
 
     @Override
-    public PixChargeResult buscarQrCodePix(String paymentId) {
-        AsaasPixQrCodeResponse qrCode = asaasClient.buscarQrCodePix(paymentId);
+    public PixChargeResult buscarQrCodePix(String apiKey, String paymentId) {
+        AsaasPixQrCodeResponse qrCode = asaasClient.buscarQrCodePix(apiKey, paymentId);
         return new PixChargeResult(paymentId, qrCode.payload(), qrCode.encodedImage());
     }
 

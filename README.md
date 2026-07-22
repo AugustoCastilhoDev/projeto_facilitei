@@ -13,7 +13,7 @@ Projeto construído como portfólio técnico, documentando as decisões de arqui
 | Backend | Java 21, Spring Boot 4.1.0, Spring Data JPA, Spring Security (JWT nativo via OAuth2 Resource Server), Flyway |
 | Banco de dados | PostgreSQL 17 |
 | Frontend | Angular 22 (standalone components, Signals), Angular Material 3 |
-| Pagamento | Asaas (sandbox) — cobrança Pix |
+| Pagamento | Asaas — cobrança Pix, modelo "traga sua própria conta" (BYOPP): cada tenant usa a própria chave de API |
 | Notificação | Abstração própria (`NotificationService`), implementação atual é um mock de console — WhatsApp real fica para uma iteração futura |
 
 As versões foram escolhidas pelas mais atuais estáveis no momento do desenvolvimento, não pelas mais populares/antigas — Spring Boot 4 e Angular 22 trouxeram mudanças de modularização (ver seção de decisões técnicas) que exigiram ajustes não documentados nos tutoriais mais comuns da internet.
@@ -32,7 +32,7 @@ backend/src/main/java/com/castilhodigital/facilitei/
 ├── booking/        # Reserva do cliente final, checkout, expiração automática
 ├── payment/        # Porta PaymentGatewayService + implementação payment/asaas
 ├── notification/   # Porta NotificationService + implementação console (mock)
-└── common/         # Config transversal (segurança, exceptions, ProblemDetail, scheduling)
+└── common/         # Config transversal (segurança, exceptions, ProblemDetail, scheduling, crypto)
 ```
 
 **Ports-and-adapters** para as duas integrações externas: `PaymentGatewayService` e `NotificationService` são interfaces; o domínio (`BookingCheckoutService`, `BookingService`) não sabe que o provedor de pagamento é a Asaas nem que a notificação por enquanto só loga no console. Trocar de gateway de pagamento ou plugar WhatsApp de verdade não exige mudar nada fora do respectivo pacote `payment.asaas` / `notification`.
@@ -58,8 +58,16 @@ Todas as rotas usam `loadComponent`/`loadChildren` (lazy loading) e `withCompone
 
 - O `tenantId` fica no path da API (`/api/admin/tenants/{tenantId}/...`) por legibilidade, mas **nunca é confiado cegamente**: `TenantSecurityGuard` confere, em toda requisição admin, se o `tenantId` do path bate com o `tenantId` do JWT autenticado — fecha um IDOR clássico (OWASP API1:2023).
 - Erros da API seguem o padrão RFC 7807 (`ProblemDetail`) de forma uniforme, inclusive para 401/403 (exigiu registrar o entry point tanto globalmente quanto no próprio `oauth2ResourceServer`, que tem um mecanismo interno que ignora o handler global para token malformado).
-- Segredos (chave da Asaas) só existem em `application-local.yml`, que está no `.gitignore` — nunca chegam ao repositório nem foram colados em texto puro em nenhum lugar rastreado. O `application.yml` versionado já resolve tudo via variável de ambiente (`${ASAAS_API_KEY:}`, `${JWT_SECRET:...}`, `${DB_PASSWORD:...}`) — em produção basta configurar as variáveis no provedor de hospedagem, sem precisar de nenhum arquivo `.yml` adicional.
+- Segredos de configuração da própria plataforma (JWT, banco) só existem em variável de ambiente/`application-local.yml` (git-ignorado) — nunca chegam ao repositório. Já as credenciais Asaas de cada **tenant** (modelo BYOPP, ver abaixo) ficam no banco, cifradas em repouso via `EncryptedStringConverter` (AES via `TextEncryptor` do Spring Security Crypto) — nunca em texto puro, nem sequer devolvidas pela API depois de salvas.
 - `LoginRateLimiter` bloqueia força bruta no `/api/auth/login`: até 5 tentativas com falha por IP numa janela de 1 minuto; um login bem-sucedido zera o contador. Estado em memória (por instância) — suficiente para um único backend, mas exigiria um armazenamento compartilhado (Redis) se o deploy passar a ter múltiplas instâncias.
+
+### Recebimento de pagamentos — modelo BYOPP ("traga sua própria conta")
+
+A plataforma nunca guarda nem intermedia o dinheiro do sinal: cada tenant configura a **própria** chave de API Asaas (`TenantAsaasConfigController`, tela "Pagamentos" no painel), e a cobrança Pix é criada direto na conta Asaas do negócio — a chave é passada por chamada ao `AsaasClient` (não é mais um header fixo num `RestClient` global), resolvida a partir do tenant dono do agendamento.
+
+Como cada tenant tem sua própria conta Asaas, o webhook (`AsaasWebhookController`) não pode mais validar contra um segredo único e global: ele primeiro descobre de qual tenant é o evento — buscando a reserva pelo `asaasPaymentId` recebido (sempre globalmente único na Asaas) — e só então compara o token recebido contra o `asaasWebhookToken` daquele tenant especificamente, gerado pela própria plataforma na primeira configuração.
+
+Ver o tutorial completo (para o dono do negócio) em [`docs/configurar-pagamentos.md`](docs/configurar-pagamentos.md).
 
 ## Modelo de dados
 
@@ -76,6 +84,7 @@ tenants (negócio) ──< users (admin, role fixa)
 - Um **slot** pertence a um único serviço e é gerado automaticamente (`SlotGenerationService`) a partir do expediente do tenant + duração do serviço.
 - O negócio é modelado como **um único profissional/cadeira**: dois serviços diferentes não podem ter reservas em horários que se sobrepõem (ver decisão técnica abaixo).
 - `bookings.status_pagamento` cobre `PENDENTE`, `PAGO`, `SEM_SINAL` (serviço sem sinal, pagamento no local), `EXPIRADO` e `CANCELADO`.
+- `tenants` guarda `asaas_api_key` e `asaas_webhook_token` (ambos cifrados) — a própria credencial Asaas do tenant, não da plataforma. Ver "Recebimento de pagamentos (BYOPP)" abaixo.
 
 ## Decisões técnicas
 
@@ -88,10 +97,13 @@ Pontos que valem a pena mencionar numa entrevista — cada um resolveu um proble
 - **QR Code Pix não é persistido, mas é re-buscável.** A imagem do QR Code não fica salva no banco (só o payload "copia e cola" e o id do pagamento), mas a página de pagamento sobrevive a um F5 graças à rota `/agendar/:slug/reserva/:bookingId` + um endpoint que rebusca o QR Code na Asaas enquanto o pagamento estiver pendente.
 - **Sinal zero vira "pagamento no local", não uma cobrança de R$0,00.** A Asaas não aceita cobrança de valor zero. Se `sinalPercentual = 0`, o checkout pula a Asaas inteiramente e confirma a reserva direto (`status_pagamento = SEM_SINAL`).
 - **Webhook da Asaas tem uma "fila de sincronização" própria, separada do cadastro da URL.** Ao testar com um túnel ngrok real, o webhook ficou marcado como "Interrompido" mesmo com a URL e o token corretos — o motivo não é falha de entrega (o log de webhooks da Asaas não registrava nenhuma tentativa), e sim um toggle "Fila de sincronização ativada?" que vem desligado por padrão ao criar o webhook. Eventos são gerados mesmo com a fila pausada, mas só são entregues depois que ela é reativada manualmente no painel.
+- **Chave Asaas por tenant, cifrada via `AttributeConverter`, não manualmente antes de salvar.** `EncryptedStringConverter` cifra/decifra de forma transparente no próprio mapeamento JPA (`@Convert`) — a entidade sempre trabalha com o texto plano em memória, só a coluna no banco fica cifrada. O conversor é registrado como bean Spring (`@Component`), não instanciado via reflection pelo Hibernate, para poder injetar o `TextEncryptor` — o Spring Boot já configura o Hibernate para resolver conversores assim.
+- **Identificar o tenant pelo pagamento antes de autenticar o webhook, não depois.** Com uma chave/token só por conta Asaas (modelo BYOPP), não existe mais um segredo único global para comparar. A solução inverte a ordem: busca a reserva pelo `asaasPaymentId` (globalmente único), pega o tenant dono dela, e só então valida o token contra o segredo daquele tenant específico — descoberto durante a implementação que essa consulta precisa de `JOIN FETCH` explícito (`slot` + `tenant`), porque o controller acessa o tenant fora da transação onde a reserva foi buscada (`LazyInitializationException` real, pego em teste manual, não só em teoria).
 
 ## Limitações conhecidas
 
-- **Sem split de pagamento**: o sinal cai na conta Asaas da própria plataforma; repassar ao dono do negócio seria manual (existe um campo `asaas_wallet_id` em `tenants` reservado para isso no futuro).
+- **Sem onboarding assistido da conta Asaas do tenant**: o dono do negócio (ou a equipe da Facilitei, ajudando-o) precisa criar a própria conta Asaas e colar a chave manualmente — não há criação automática de subconta nem fluxo OAuth/Connect. Existe um campo `asaas_wallet_id` em `tenants`, ainda não utilizado, reservado para um modelo de split via marketplace avaliado e descartado em favor do BYOPP (ver ROADMAP).
+- **Um único webhook token por tenant, sem rotação**: gerado uma vez na primeira configuração e nunca trocado (mesmo ao atualizar a chave de API) — evita invalidar um webhook já configurado do lado da Asaas, mas também não há como o próprio tenant regenerá-lo pela UI se suspeitar de vazamento.
 - **Um cliente não pode agendar múltiplos serviços numa única reserva/checkout** — decisão consciente de escopo, ver histórico do projeto. O modelo atual é 1 slot = 1 booking.
 - **Webhook validado com túnel público (ngrok) contra a sandbox da Asaas**, incluindo uma reserva real, confirmação de pagamento pelo painel da Asaas e recebimento do evento `PAYMENT_CONFIRMED` pelo backend local — mas ainda não em produção, nem sob carga.
 - **Fuso horário fixo em `America/Sao_Paulo`** — não há suporte a tenants em outros fusos.
@@ -111,13 +123,15 @@ Pontos que valem a pena mencionar numa entrevista — cada um resolveu um proble
 docker compose up -d
 ```
 
-### 2. Configurar a chave da Asaas (opcional, mas necessário para o fluxo de pagamento)
+### 2. Chave da Asaas (opcional, só necessária para testar cobrança real de Pix)
+
+Desde o modelo BYOPP ("traga sua própria conta"), a chave usada para gerar a cobrança Pix do sinal **não** vem mais de `application-local.yml` — cada tenant configura a própria, direto no painel (aba "Pagamentos", depois de logar). `application-local.yml` continua existindo só para a chave *da própria plataforma*, reservada para uma cobrança futura ainda não implementada (a assinatura do SaaS):
 
 ```bash
 cp backend/src/main/resources/application-local.yml.example backend/src/main/resources/application-local.yml
 ```
 
-Edite o arquivo criado e cole sua chave da API sandbox da Asaas. Esse arquivo está no `.gitignore` — nunca será commitado.
+Esse arquivo está no `.gitignore` — nunca será commitado. Para testar a geração real de um Pix pelo tenant, use uma chave sandbox da Asaas na tela "Pagamentos" do painel (ver [`docs/configurar-pagamentos.md`](docs/configurar-pagamentos.md)).
 
 ### 3. Subir o backend
 
@@ -135,7 +149,7 @@ O Flyway aplica as migrations automaticamente na primeira subida.
 
 ### 4. Cadastrar um tenant de teste
 
-Não existe tela de cadastro no painel — só a API:
+Depois de subir o frontend (próximo passo), acesse `http://localhost:4200/auth/registrar` e cadastre pelo formulário (onboarding self-service). Se preferir via API diretamente:
 
 ```bash
 curl -X POST http://localhost:8080/api/auth/registrar \
@@ -173,7 +187,7 @@ cd backend && mvn test
 cd frontend && ng test --watch=false
 ```
 
-56 testes no backend e 9 suítes no frontend, cobrindo desde regras de negócio isoladas (cálculo de sinal, conflito de horário, expiração, rate limiting) até os controllers REST e a integração real com o sandbox da Asaas.
+66 testes no backend e 10 suítes no frontend, cobrindo desde regras de negócio isoladas (cálculo de sinal, conflito de horário, expiração, rate limiting, criptografia de credenciais) até os controllers REST e a integração real com o sandbox da Asaas.
 
 O GitHub Actions (`.github/workflows/ci.yml`) roda exatamente esses mesmos comandos — `mvn test` + `mvn package` no backend, `ng test` + `ng build` no frontend — a cada push e pull request para a `main`. Nenhum teste depende de banco de dados real (tudo via `@WebMvcTest`/Mockito ou testes puros de unidade), então o job do backend não precisa subir um Postgres.
 

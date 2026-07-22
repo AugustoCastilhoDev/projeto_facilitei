@@ -9,16 +9,24 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
+/**
+ * apiKey e passada por chamada (nao e um header fixo no RestClient): cada
+ * tenant tem sua propria conta Asaas (modelo BYOPP), entao a credencial
+ * muda a cada requisicao dependendo de quem esta fazendo o checkout.
+ */
 @Component
 @RequiredArgsConstructor
 class AsaasClient {
 
+    private static final String HEADER_ACCESS_TOKEN = "access_token";
+
     private final RestClient asaasRestClient;
 
-    String criarCliente(String nome, String telefone, String cpfCnpj) {
+    String criarCliente(String apiKey, String nome, String telefone, String cpfCnpj) {
         try {
             AsaasCustomerResponse response = asaasRestClient.post()
                     .uri("/customers")
+                    .header(HEADER_ACCESS_TOKEN, apiKey)
                     .body(new AsaasCustomerRequest(nome, telefone, cpfCnpj))
                     .retrieve()
                     .body(AsaasCustomerResponse.class);
@@ -28,10 +36,12 @@ class AsaasClient {
         }
     }
 
-    AsaasPaymentResponse criarCobrancaPix(String customerId, BigDecimal valor, LocalDate vencimento, String referenciaExterna) {
+    AsaasPaymentResponse criarCobrancaPix(
+            String apiKey, String customerId, BigDecimal valor, LocalDate vencimento, String referenciaExterna) {
         try {
             return asaasRestClient.post()
                     .uri("/payments")
+                    .header(HEADER_ACCESS_TOKEN, apiKey)
                     .body(new AsaasPaymentRequest(customerId, "PIX", valor, vencimento, referenciaExterna))
                     .retrieve()
                     .body(AsaasPaymentResponse.class);
@@ -40,10 +50,11 @@ class AsaasClient {
         }
     }
 
-    AsaasPixQrCodeResponse buscarQrCodePix(String paymentId) {
+    AsaasPixQrCodeResponse buscarQrCodePix(String apiKey, String paymentId) {
         try {
             return asaasRestClient.get()
                     .uri("/payments/{id}/pixQrCode", paymentId)
+                    .header(HEADER_ACCESS_TOKEN, apiKey)
                     .retrieve()
                     .body(AsaasPixQrCodeResponse.class);
         } catch (RestClientException ex) {

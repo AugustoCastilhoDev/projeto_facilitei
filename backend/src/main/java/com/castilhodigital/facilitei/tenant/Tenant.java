@@ -1,7 +1,9 @@
 package com.castilhodigital.facilitei.tenant;
 
 import com.castilhodigital.facilitei.common.BaseEntity;
+import com.castilhodigital.facilitei.common.crypto.EncryptedStringConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import java.time.LocalTime;
@@ -35,6 +37,28 @@ public class Tenant extends BaseEntity {
      */
     @Column(name = "asaas_wallet_id")
     private String asaasWalletId;
+
+    /**
+     * Chave da API Asaas da PROPRIA conta do tenant (modelo "traga sua
+     * propria conta de pagamento" - BYOPP): a cobranca Pix do sinal e criada
+     * direto na conta do negocio, nao na da plataforma - diferente do
+     * asaasWalletId acima, que era pensado para um modelo de split via
+     * subconta/marketplace nunca implementado. Cifrada em repouso (ver
+     * common.crypto.EncryptedStringConverter).
+     */
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "asaas_api_key", columnDefinition = "TEXT")
+    private String asaasApiKey;
+
+    /**
+     * Segredo gerado pela PROPRIA plataforma (nao escolhido pelo tenant) ao
+     * configurar a chave acima, usado para autenticar o webhook Asaas deste
+     * tenant especificamente - ver AsaasWebhookController, que identifica o
+     * tenant pelo pagamento recebido antes de validar o token.
+     */
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(name = "asaas_webhook_token", columnDefinition = "TEXT")
+    private String asaasWebhookToken;
 
     @Column(name = "horario_abertura", nullable = false)
     private LocalTime horarioAbertura;

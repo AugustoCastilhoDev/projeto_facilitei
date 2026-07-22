@@ -4,6 +4,7 @@ import com.castilhodigital.facilitei.common.exception.EntidadeNaoEncontradaExcep
 import com.castilhodigital.facilitei.notification.NotificationService;
 import com.castilhodigital.facilitei.scheduling.Slot;
 import com.castilhodigital.facilitei.scheduling.SlotService;
+import com.castilhodigital.facilitei.tenant.Tenant;
 import java.time.OffsetDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +49,19 @@ public class BookingService {
         Booking booking = buscarPorId(bookingId);
         booking.setAsaasPaymentId(asaasPaymentId);
         booking.setAsaasPixPayload(pixPayload);
+    }
+
+    /**
+     * Usado pelo webhook do Asaas para descobrir de QUAL tenant e o evento
+     * recebido, antes de validar o token (cada tenant tem o seu proprio, no
+     * modelo BYOPP) - ver AsaasWebhookController.
+     */
+    @Transactional(readOnly = true)
+    public Tenant buscarTenantPeloAsaasPaymentId(String asaasPaymentId) {
+        return bookingRepository.findByAsaasPaymentIdFetchTenant(asaasPaymentId)
+                .map(booking -> booking.getSlot().getTenant())
+                .orElseThrow(() -> new EntidadeNaoEncontradaException(
+                        "Nenhuma reserva encontrada para o pagamento Asaas '" + asaasPaymentId + "'."));
     }
 
     /** Chamado pelo endpoint de webhook do Asaas (etapa 6) quando o pagamento e confirmado. */

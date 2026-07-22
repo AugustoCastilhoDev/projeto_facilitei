@@ -1,0 +1,75 @@
+@if (carregando()) {
+  <div class="carregando">
+    <mat-spinner diameter="32" />
+  </div>
+} @else {
+  <mat-card class="card-status">
+    <mat-card-content>
+      <div class="linha-status">
+        <span class="status-chip" [class.status-ativo]="config()?.configurado" [class.status-inativo]="!config()?.configurado">
+          {{ config()?.configurado ? 'Recebimento configurado' : 'Recebimento nao configurado' }}
+        </span>
+      </div>
+      <p class="explicacao">
+        Sua conta Asaas recebe o sinal Pix dos seus clientes diretamente - nenhum valor passa pela plataforma.
+        Precisa de ajuda? Veja o tutorial em <code>docs/configurar-pagamentos.md</code> no repositorio do projeto.
+      </p>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="card-formulario">
+    <mat-card-header>
+      <mat-card-title>{{ config()?.configurado ? 'Trocar a chave da API Asaas' : 'Configurar chave da API Asaas' }}</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="salvar()">
+        <mat-form-field appearance="outline" class="campo">
+          <mat-label>Chave da API Asaas (da sua conta)</mat-label>
+          <input matInput type="password" formControlName="apiKey" autocomplete="off" />
+          @if (form.controls.apiKey.hasError('required') && form.controls.apiKey.touched) {
+            <mat-error>Chave e obrigatoria.</mat-error>
+          }
+        </mat-form-field>
+
+        <button mat-flat-button color="primary" type="submit" class="botao-salvar" [disabled]="salvando()">
+          @if (salvando()) {
+            <mat-spinner diameter="20" />
+          } @else {
+            Salvar chave
+          }
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  @if (config()?.configurado) {
+    <mat-card class="card-webhook">
+      <mat-card-header>
+        <mat-card-title>Configurar o webhook na Asaas</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p class="explicacao">
+          Va em Integracoes &gt; Webhooks na sua conta Asaas, adicione um novo webhook com estes dados, selecione
+          pelo menos os eventos PAYMENT_CONFIRMED, PAYMENT_RECEIVED e PAYMENT_OVERDUE, e nao esqueca de ativar a
+          "Fila de sincronizacao" ao salvar.
+        </p>
+
+        <div class="linha-copiavel">
+          <span class="rotulo">URL do webhook</span>
+          <code>{{ config()?.webhookUrl }}</code>
+          <button mat-icon-button type="button" (click)="copiar(config()!.webhookUrl)" aria-label="Copiar URL">
+            <mat-icon>content_copy</mat-icon>
+          </button>
+        </div>
+
+        <div class="linha-copiavel">
+          <span class="rotulo">Token de autenticacao</span>
+          <code>{{ config()?.webhookToken }}</code>
+          <button mat-icon-button type="button" (click)="copiar(config()!.webhookToken)" aria-label="Copiar token">
+            <mat-icon>content_copy</mat-icon>
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+}

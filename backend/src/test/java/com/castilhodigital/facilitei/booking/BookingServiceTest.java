@@ -1,13 +1,16 @@
 package com.castilhodigital.facilitei.booking;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.castilhodigital.facilitei.common.exception.EntidadeNaoEncontradaException;
 import com.castilhodigital.facilitei.notification.NotificationService;
 import com.castilhodigital.facilitei.scheduling.Slot;
 import com.castilhodigital.facilitei.scheduling.SlotService;
+import com.castilhodigital.facilitei.tenant.Tenant;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -109,6 +112,32 @@ class BookingServiceTest {
 
         assertThat(quantidade).isZero();
         verify(slotService, never()).liberar(org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    @Test
+    void buscarTenantPeloAsaasPaymentIdRetornaTenantDoSlotDaReserva() {
+        Tenant tenant = new Tenant();
+        tenant.setSlug("barbearia-do-ze");
+
+        Slot slot = new Slot();
+        slot.setTenant(tenant);
+
+        Booking booking = new Booking();
+        booking.setSlot(slot);
+
+        when(bookingRepository.findByAsaasPaymentIdFetchTenant("pay_1")).thenReturn(Optional.of(booking));
+
+        Tenant resultado = bookingService.buscarTenantPeloAsaasPaymentId("pay_1");
+
+        assertThat(resultado).isSameAs(tenant);
+    }
+
+    @Test
+    void buscarTenantPeloAsaasPaymentIdDePagamentoDesconhecidoLancaExcecao() {
+        when(bookingRepository.findByAsaasPaymentIdFetchTenant("pay_desconhecido")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> bookingService.buscarTenantPeloAsaasPaymentId("pay_desconhecido"))
+                .isInstanceOf(EntidadeNaoEncontradaException.class);
     }
 
     @Test

@@ -1,4 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { Page, expect, test } from '@playwright/test';
 
 const CPF_TESTE = '52998224725';
 
@@ -13,13 +15,40 @@ function dataDeAmanha(): string {
 }
 
 /**
+ * Modelo BYOPP: a cobranca Pix do sinal sai da PROPRIA conta Asaas do tenant
+ * (ver TenantAsaasConfigController), nao mais de uma chave global da
+ * plataforma. Para o teste "com sinal" gerar uma cobranca real, reaproveita
+ * a mesma chave sandbox ja usada pelo backend local (application-local.yml,
+ * git-ignorado) - nao ha diferenca pratica entre "a chave da plataforma" e
+ * "a chave do tenant" nesse ambiente de teste, ja que so existe uma conta
+ * sandbox disponivel. Se o arquivo nao existir, o teste e pulado.
+ */
+function lerChaveAsaasLocal(): string | null {
+  try {
+    const caminho = resolve(__dirname, '../../backend/src/main/resources/application-local.yml');
+    const conteudo = readFileSync(caminho, 'utf8');
+    const match = conteudo.match(/api-key:\s*(\S+)/);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+async function configurarChaveAsaas(page: Page, apiKey: string): Promise<void> {
+  await page.getByRole('tab', { name: 'Pagamentos' }).click();
+  await page.getByLabel('Chave da API Asaas (da sua conta)').fill(apiKey);
+  await page.getByRole('button', { name: 'Salvar chave' }).click();
+  await expect(page.getByText('Recebimento configurado')).toBeVisible();
+}
+
+/**
  * Cadastra um tenant novo pela UI (onboarding self-service), loga, cria um
  * servico e gera horarios para amanha. Cada teste usa seu proprio tenant
  * (slug/email com timestamp), entao os testes nao interferem entre si e
  * podem rodar quantas vezes forem necessarias sem limpeza manual do banco.
  */
 async function cadastrarTenantComServico(
-  page: import('@playwright/test').Page,
+  page: Page,
   opcoes: { slug: string; nomeServico: string; sinalPercentual: number },
 ) {
   const email = `${opcoes.slug}@e2e-teste.com`;
@@ -83,8 +112,12 @@ test('reserva com servico sem sinal e confirmada na hora, sem cobranca Pix', asy
 });
 
 test('reserva com sinal exibe cobranca Pix real da Asaas aguardando pagamento', async ({ page }) => {
+  const apiKey = lerChaveAsaasLocal();
+  test.skip(!apiKey, 'Chave sandbox da Asaas nao encontrada em application-local.yml - pulando teste dependente dela.');
+
   const slug = slugUnico('e2e-com-sinal');
   await cadastrarTenantComServico(page, { slug, nomeServico: 'Corte Premium', sinalPercentual: 50 });
+  await configurarChaveAsaas(page, apiKey!);
 
   await page.goto(`/agendar/${slug}`);
   await page.getByText('Corte Premium').click();

@@ -22,6 +22,15 @@
   >
     Servicos
   </a>
+  <a
+    mat-tab-link
+    routerLink="pagamentos"
+    routerLinkActive
+    #pagamentosLink="routerLinkActive"
+    [active]="pagamentosLink.isActive"
+  >
+    Pagamentos
+  </a>
 </nav>
 
 <mat-tab-nav-panel #painel class="dashboard-content">

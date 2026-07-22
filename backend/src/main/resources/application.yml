@@ -37,8 +37,18 @@ facilitei:
     # (docs.asaas.com) - nao confundir com dominios antigos/de terceiros que
     # aparecem em buscas (ex.: sandbox.asaas.com/api/v3, que e outra API).
     base-url: ${ASAAS_BASE_URL:https://api-sandbox.asaas.com/v3}
+    # Chave da PROPRIA plataforma - reservada para uma cobranca futura ainda
+    # nao implementada (a assinatura mensal do proprio SaaS). A cobranca do
+    # sinal do cliente final usa a chave de cada tenant (Tenant.asaasApiKey),
+    # nao esta aqui - ver modelo BYOPP no README/ROADMAP.
     api-key: ${ASAAS_API_KEY:}
-    webhook-token: ${ASAAS_WEBHOOK_TOKEN:facilitei-local-dev-webhook-token}
+
+  security:
+    # Cifra em repouso a chave Asaas de cada tenant (ver common.crypto).
+    # Em producao AMBOS devem vir de variavel de ambiente/secret manager -
+    # os defaults abaixo sao so para desenvolvimento local.
+    credentials-encryption-key: ${CREDENTIALS_ENCRYPTION_KEY:facilitei-local-dev-encryption-key-troque-em-producao}
+    credentials-encryption-salt: ${CREDENTIALS_ENCRYPTION_SALT:deadbeefcafe0123}
 
 logging:
   level:

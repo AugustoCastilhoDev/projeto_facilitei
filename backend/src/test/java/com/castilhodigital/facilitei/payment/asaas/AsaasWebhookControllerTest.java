@@ -1,12 +1,15 @@
 package com.castilhodigital.facilitei.payment.asaas;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.castilhodigital.facilitei.booking.BookingService;
+import com.castilhodigital.facilitei.common.exception.EntidadeNaoEncontradaException;
+import com.castilhodigital.facilitei.tenant.Tenant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +19,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+/**
+ * Cada tenant tem sua propria chave/token Asaas (modelo BYOPP), entao o
+ * webhook identifica o tenant pelo asaasPaymentId recebido ANTES de validar
+ * o token - ver AsaasWebhookController.
+ */
 @WebMvcTest(AsaasWebhookController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class AsaasWebhookControllerTest {
@@ -26,12 +34,15 @@ class AsaasWebhookControllerTest {
     @MockitoBean
     private BookingService bookingService;
 
-    @MockitoBean
-    private AsaasProperties asaasProperties;
-
     @BeforeEach
     void setUp() {
-        when(asaasProperties.webhookToken()).thenReturn("segredo-teste");
+        Tenant tenant = new Tenant();
+        tenant.setNome("Negocio Teste");
+        tenant.setSlug("negocio-teste");
+        tenant.setAsaasWebhookToken("segredo-teste");
+
+        when(bookingService.buscarTenantPeloAsaasPaymentId("pay_1")).thenReturn(tenant);
+        when(bookingService.buscarTenantPeloAsaasPaymentId("pay_2")).thenReturn(tenant);
     }
 
     @Test
@@ -61,7 +72,7 @@ class AsaasWebhookControllerTest {
     }
 
     @Test
-    void eventoComTokenInvalidoRetorna401ENaoChamaBooking() throws Exception {
+    void eventoComTokenInvalidoRetorna401ENaoConfirmaPagamento() throws Exception {
         String body = "{\"event\":\"PAYMENT_CONFIRMED\",\"payment\":{\"id\":\"pay_1\",\"status\":\"CONFIRMED\"}}";
 
         mockMvc.perform(post("/api/webhooks/asaas")
@@ -70,7 +81,7 @@ class AsaasWebhookControllerTest {
                         .content(body))
                 .andExpect(status().isUnauthorized());
 
-        verifyNoInteractions(bookingService);
+        verify(bookingService, never()).confirmarPagamento(any());
     }
 
     @Test
@@ -84,7 +95,7 @@ class AsaasWebhookControllerTest {
     }
 
     @Test
-    void eventoIrrelevanteNaoChamaBookingService() throws Exception {
+    void eventoIrrelevanteComTokenValidoNaoConfirmaNemExpira() throws Exception {
         String body = "{\"event\":\"PAYMENT_CREATED\",\"payment\":{\"id\":\"pay_1\",\"status\":\"PENDING\"}}";
 
         mockMvc.perform(post("/api/webhooks/asaas")
@@ -93,7 +104,8 @@ class AsaasWebhookControllerTest {
                         .content(body))
                 .andExpect(status().isOk());
 
-        verifyNoInteractions(bookingService);
+        verify(bookingService, never()).confirmarPagamento(any());
+        verify(bookingService, never()).marcarComoExpirado(any());
     }
 
     @Test
@@ -107,6 +119,19 @@ class AsaasWebhookControllerTest {
                 .andExpect(status().isOk());
 
         verify(bookingService).marcarComoExpirado("pay_1");
+    }
+
+    @Test
+    void eventoParaPagamentoDesconhecidoRetorna404() throws Exception {
+        when(bookingService.buscarTenantPeloAsaasPaymentId("pay_desconhecido"))
+                .thenThrow(new EntidadeNaoEncontradaException("Nenhuma reserva encontrada."));
+        String body = "{\"event\":\"PAYMENT_CONFIRMED\",\"payment\":{\"id\":\"pay_desconhecido\",\"status\":\"CONFIRMED\"}}";
+
+        mockMvc.perform(post("/api/webhooks/asaas")
+                        .header("asaas-access-token", "segredo-teste")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isNotFound());
     }
 
 }

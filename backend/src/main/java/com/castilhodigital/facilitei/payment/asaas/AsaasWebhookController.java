@@ -1,6 +1,7 @@
 package com.castilhodigital.facilitei.payment.asaas;
 
 import com.castilhodigital.facilitei.booking.BookingService;
+import com.castilhodigital.facilitei.tenant.Tenant;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Set;
@@ -17,8 +18,14 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Recebe as notificacoes de pagamento do Asaas. Publico do ponto de vista do
  * Spring Security (nao ha JWT de usuario aqui - quem chama e o Asaas, nao um
- * cliente do sistema), mas autenticado via o header "asaas-access-token",
- * configurado no painel do Asaas com o mesmo valor de facilitei.asaas.webhook-token.
+ * cliente do sistema).
+ *
+ * Como cada tenant tem sua PROPRIA conta Asaas (modelo BYOPP), nao ha mais
+ * um unico segredo de webhook global: o tenant e identificado primeiro pelo
+ * pagamento recebido (asaasPaymentId, sempre globalmente unico na Asaas), e
+ * so entao o header "asaas-access-token" e comparado contra o
+ * Tenant.asaasWebhookToken DAQUELE tenant especifico - gerado pela propria
+ * plataforma quando o tenant configura sua chave (ver TenantAsaasConfigController).
  */
 @Slf4j
 @RestController
@@ -30,33 +37,38 @@ public class AsaasWebhookController {
     private static final Set<String> EVENTOS_DE_PAGAMENTO_VENCIDO = Set.of("PAYMENT_OVERDUE");
 
     private final BookingService bookingService;
-    private final AsaasProperties asaasProperties;
 
     @PostMapping
     public ResponseEntity<Void> receberEvento(
             @RequestHeader(value = "asaas-access-token", required = false) String tokenRecebido,
             @RequestBody AsaasWebhookEvent evento) {
 
-        if (!tokenValido(tokenRecebido)) {
-            log.warn("Webhook do Asaas recebido com token invalido.");
+        if (evento.payment() == null) {
+            return ResponseEntity.ok().build();
+        }
+
+        Tenant tenant = bookingService.buscarTenantPeloAsaasPaymentId(evento.payment().id());
+
+        if (!tokenValido(tokenRecebido, tenant.getAsaasWebhookToken())) {
+            log.warn("Webhook do Asaas recebido com token invalido para o tenant '{}'.", tenant.getSlug());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        if (EVENTOS_DE_PAGAMENTO_CONFIRMADO.contains(evento.event()) && evento.payment() != null) {
+        if (EVENTOS_DE_PAGAMENTO_CONFIRMADO.contains(evento.event())) {
             bookingService.confirmarPagamento(evento.payment().id());
-        } else if (EVENTOS_DE_PAGAMENTO_VENCIDO.contains(evento.event()) && evento.payment() != null) {
+        } else if (EVENTOS_DE_PAGAMENTO_VENCIDO.contains(evento.event())) {
             bookingService.marcarComoExpirado(evento.payment().id());
         }
 
         return ResponseEntity.ok().build();
     }
 
-    private boolean tokenValido(String tokenRecebido) {
-        if (tokenRecebido == null) {
+    private boolean tokenValido(String tokenRecebido, String tokenEsperado) {
+        if (tokenRecebido == null || tokenEsperado == null) {
             return false;
         }
         byte[] recebido = tokenRecebido.getBytes(StandardCharsets.UTF_8);
-        byte[] esperado = asaasProperties.webhookToken().getBytes(StandardCharsets.UTF_8);
+        byte[] esperado = tokenEsperado.getBytes(StandardCharsets.UTF_8);
         return MessageDigest.isEqual(recebido, esperado);
     }
 

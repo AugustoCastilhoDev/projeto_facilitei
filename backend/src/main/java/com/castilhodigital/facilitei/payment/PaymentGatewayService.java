@@ -8,13 +8,19 @@ package com.castilhodigital.facilitei.payment;
  */
 public interface PaymentGatewayService {
 
-    PixChargeResult criarCobrancaPix(PixChargeRequest request);
+    /**
+     * apiKey identifica DE QUEM e a cobranca: cada tenant tem sua propria
+     * conta Asaas (modelo "traga sua propria conta de pagamento" - BYOPP),
+     * entao a chave nao e fixa/global, precisa ser resolvida pelo chamador
+     * (ver BookingCheckoutService) a partir do tenant dono do agendamento.
+     */
+    PixChargeResult criarCobrancaPix(String apiKey, PixChargeRequest request);
 
     /**
      * Rebusca o payload/QR Code de uma cobranca ja existente. Usado quando o
      * cliente recarrega a pagina de pagamento: o QR Code (imagem) nao e
      * persistido no Booking, entao precisa ser buscado de novo no gateway.
      */
-    PixChargeResult buscarQrCodePix(String paymentId);
+    PixChargeResult buscarQrCodePix(String apiKey, String paymentId);
 
 }

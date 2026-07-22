@@ -1,9 +1,11 @@
 package com.castilhodigital.facilitei.booking;
 
 import com.castilhodigital.facilitei.catalog.ServiceOffering;
+import com.castilhodigital.facilitei.common.exception.RegraDeNegocioException;
 import com.castilhodigital.facilitei.payment.PaymentGatewayService;
 import com.castilhodigital.facilitei.payment.PixChargeRequest;
 import com.castilhodigital.facilitei.payment.PixChargeResult;
+import com.castilhodigital.facilitei.tenant.Tenant;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import lombok.RequiredArgsConstructor;
@@ -42,9 +44,18 @@ public class BookingCheckoutService {
             return new CheckoutResult(bookingConfirmado, null);
         }
 
+        Tenant tenant = booking.getSlot().getTenant();
+        String apiKey = tenant.getAsaasApiKey();
+        if (apiKey == null || apiKey.isBlank()) {
+            // modelo BYOPP: a cobranca sai da conta Asaas do proprio tenant,
+            // entao sem a chave dele configurada nao ha como gerar o Pix.
+            throw new RegraDeNegocioException(
+                    "Este negocio ainda nao configurou o recebimento de pagamentos. Tente novamente mais tarde.");
+        }
+
         PixChargeRequest request = new PixChargeRequest(
                 clienteNome, clienteTelefone, clienteCpfCnpj, valorSinal, "booking-" + booking.getId());
-        PixChargeResult resultado = paymentGatewayService.criarCobrancaPix(request);
+        PixChargeResult resultado = paymentGatewayService.criarCobrancaPix(apiKey, request);
 
         bookingService.vincularCobranca(booking.getId(), resultado.paymentId(), resultado.payload());
 
@@ -68,7 +79,8 @@ public class BookingCheckoutService {
             return new CheckoutResult(booking, null);
         }
 
-        PixChargeResult qrCode = paymentGatewayService.buscarQrCodePix(booking.getAsaasPaymentId());
+        String apiKey = booking.getSlot().getTenant().getAsaasApiKey();
+        PixChargeResult qrCode = paymentGatewayService.buscarQrCodePix(apiKey, booking.getAsaasPaymentId());
         return new CheckoutResult(booking, qrCode.qrCodeImagemBase64());
     }
 
