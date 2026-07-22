@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.castilhodigital.facilitei.common.exception.CredenciaisInvalidasException;
+import com.castilhodigital.facilitei.common.exception.LimiteDeRequisicoesExcedidoException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -36,6 +37,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private LoginService loginService;
+
+    @MockitoBean
+    private LoginRateLimiter loginRateLimiter;
 
     @Test
     void registrarComDadosValidosRetorna201() throws Exception {
@@ -94,6 +98,18 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void loginAposLimiteDeTentativasExcedidoRetorna429() throws Exception {
+        LoginRequest request = new LoginRequest("ze@example.com", "senhaErrada");
+        org.mockito.Mockito.doThrow(new LimiteDeRequisicoesExcedidoException("Muitas tentativas de login."))
+                .when(loginRateLimiter).verificarLimite(any());
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isTooManyRequests());
     }
 
 }

@@ -56,7 +56,8 @@ Todas as rotas usam `loadComponent`/`loadChildren` (lazy loading) e `withCompone
 
 - O `tenantId` fica no path da API (`/api/admin/tenants/{tenantId}/...`) por legibilidade, mas **nunca é confiado cegamente**: `TenantSecurityGuard` confere, em toda requisição admin, se o `tenantId` do path bate com o `tenantId` do JWT autenticado — fecha um IDOR clássico (OWASP API1:2023).
 - Erros da API seguem o padrão RFC 7807 (`ProblemDetail`) de forma uniforme, inclusive para 401/403 (exigiu registrar o entry point tanto globalmente quanto no próprio `oauth2ResourceServer`, que tem um mecanismo interno que ignora o handler global para token malformado).
-- Segredos (chave da Asaas) só existem em `application-local.yml`, que está no `.gitignore` — nunca chegam ao repositório nem foram colados em texto puro em nenhum lugar rastreado.
+- Segredos (chave da Asaas) só existem em `application-local.yml`, que está no `.gitignore` — nunca chegam ao repositório nem foram colados em texto puro em nenhum lugar rastreado. O `application.yml` versionado já resolve tudo via variável de ambiente (`${ASAAS_API_KEY:}`, `${JWT_SECRET:...}`, `${DB_PASSWORD:...}`) — em produção basta configurar as variáveis no provedor de hospedagem, sem precisar de nenhum arquivo `.yml` adicional.
+- `LoginRateLimiter` bloqueia força bruta no `/api/auth/login`: até 5 tentativas com falha por IP numa janela de 1 minuto; um login bem-sucedido zera o contador. Estado em memória (por instância) — suficiente para um único backend, mas exigiria um armazenamento compartilhado (Redis) se o deploy passar a ter múltiplas instâncias.
 
 ## Modelo de dados
 
@@ -169,4 +170,4 @@ cd backend && mvn test
 cd frontend && ng test --watch=false
 ```
 
-51 testes no backend e 8 suítes no frontend, cobrindo desde regras de negócio isoladas (cálculo de sinal, conflito de horário, expiração) até os controllers REST e a integração real com o sandbox da Asaas.
+56 testes no backend e 9 suítes no frontend, cobrindo desde regras de negócio isoladas (cálculo de sinal, conflito de horário, expiração, rate limiting) até os controllers REST e a integração real com o sandbox da Asaas.

@@ -36,7 +36,7 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 ### Infraestrutura
 - [ ] Deploy em produção: Postgres gerenciado com backup, domínio, HTTPS
 - [ ] Testar o webhook da Asaas com URL pública de verdade (hoje só foi simulado localmente)
-- [ ] Hardening básico: rate limiting no login, segredos fora de arquivo `.yml` (usar secrets manager do provedor de hospedagem)
+- [x] Hardening básico: rate limiting no login, segredos fora de arquivo `.yml` (usar secrets manager do provedor de hospedagem)
 
 ### Jurídico & financeiro
 - [ ] Conversar com contador sobre CNPJ e enquadramento tributário correto (MEI provavelmente não serve para intermediar pagamento de terceiros)

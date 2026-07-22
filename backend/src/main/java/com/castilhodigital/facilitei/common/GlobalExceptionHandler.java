@@ -3,6 +3,7 @@ package com.castilhodigital.facilitei.common;
 import com.castilhodigital.facilitei.common.exception.AcessoNegadoException;
 import com.castilhodigital.facilitei.common.exception.CredenciaisInvalidasException;
 import com.castilhodigital.facilitei.common.exception.EntidadeNaoEncontradaException;
+import com.castilhodigital.facilitei.common.exception.LimiteDeRequisicoesExcedidoException;
 import com.castilhodigital.facilitei.common.exception.RegraDeNegocioException;
 import com.castilhodigital.facilitei.payment.PaymentGatewayException;
 import java.util.LinkedHashMap;
@@ -42,6 +43,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AcessoNegadoException.class)
     public ProblemDetail handleAcessoNegado(AcessoNegadoException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
+    @ExceptionHandler(LimiteDeRequisicoesExcedidoException.class)
+    public ProblemDetail handleLimiteDeRequisicoes(LimiteDeRequisicoesExcedidoException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
     }
 
     @ExceptionHandler(PaymentGatewayException.class)

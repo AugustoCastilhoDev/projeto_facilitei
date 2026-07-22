@@ -1,5 +1,7 @@
 package com.castilhodigital.facilitei.auth;
 
+import com.castilhodigital.facilitei.common.exception.CredenciaisInvalidasException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,6 +18,7 @@ public class AuthController {
 
     private final RegistrationService registrationService;
     private final LoginService loginService;
+    private final LoginRateLimiter loginRateLimiter;
 
     @PostMapping("/registrar")
     public ResponseEntity<RegistrarTenantResponse> registrar(@Valid @RequestBody RegistrarTenantRequest request) {
@@ -24,8 +27,18 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public LoginResponse login(@Valid @RequestBody LoginRequest request) {
-        return loginService.autenticar(request.email(), request.senha());
+    public LoginResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest servletRequest) {
+        String chaveRateLimit = servletRequest.getRemoteAddr();
+        loginRateLimiter.verificarLimite(chaveRateLimit);
+
+        try {
+            LoginResponse response = loginService.autenticar(request.email(), request.senha());
+            loginRateLimiter.registrarSucesso(chaveRateLimit);
+            return response;
+        } catch (CredenciaisInvalidasException ex) {
+            loginRateLimiter.registrarFalha(chaveRateLimit);
+            throw ex;
+        }
     }
 
 }

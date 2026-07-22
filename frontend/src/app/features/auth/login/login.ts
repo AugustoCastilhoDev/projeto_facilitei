@@ -56,7 +56,13 @@ export class Login {
       },
       error: (erro: HttpErrorResponse) => {
         this.carregando.set(false);
-        this.erro.set(erro.status === 401 ? 'Email ou senha invalidos.' : 'Erro ao entrar. Tente novamente.');
+        if (erro.status === 401) {
+          this.erro.set('Email ou senha invalidos.');
+        } else if (erro.status === 429) {
+          this.erro.set('Muitas tentativas de login. Aguarde um instante antes de tentar novamente.');
+        } else {
+          this.erro.set('Erro ao entrar. Tente novamente.');
+        }
       },
     });
   }
