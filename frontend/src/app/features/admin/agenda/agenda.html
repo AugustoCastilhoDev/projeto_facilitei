@@ -1,0 +1,49 @@
+<div class="agenda-toolbar">
+  <mat-button-toggle-group [value]="modo()" (change)="alterarModo($event.value)">
+    <mat-button-toggle value="dia">Dia</mat-button-toggle>
+    <mat-button-toggle value="semana">Semana</mat-button-toggle>
+  </mat-button-toggle-group>
+
+  <input type="date" class="campo-data" [value]="data()" (change)="onDataChange($event)" />
+
+  <span class="spacer"></span>
+
+  <button mat-flat-button color="primary" (click)="abrirGerarSlots()">
+    <mat-icon>event_available</mat-icon>
+    Gerar horarios
+  </button>
+</div>
+
+@if (carregando()) {
+  <div class="carregando">
+    <mat-spinner diameter="32" />
+  </div>
+} @else if (grupos().length === 0) {
+  <p class="vazio">Nenhum horario neste periodo. Gere horarios para um servico e data.</p>
+} @else {
+  @for (grupo of grupos(); track grupo.data) {
+    <section class="grupo-dia">
+      <h3>{{ grupo.data }}</h3>
+      <table class="tabela-slots">
+        <thead>
+          <tr>
+            <th>Horario</th>
+            <th>Servico</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (slot of grupo.slots; track slot.id) {
+            <tr>
+              <td>{{ horaDoSlot(slot) }}</td>
+              <td>{{ slot.serviceNome }}</td>
+              <td>
+                <span class="status-chip" [class]="'status-' + slot.status.toLowerCase()">{{ slot.status }}</span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  }
+}

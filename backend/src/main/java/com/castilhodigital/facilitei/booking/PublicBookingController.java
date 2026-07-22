@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -38,6 +39,17 @@ public class PublicBookingController {
         CheckoutResult resultado = bookingCheckoutService.iniciarCheckout(
                 request.slotId(), request.clienteNome(), request.clienteTelefone(), request.clienteCpfCnpj());
         return ResponseEntity.status(HttpStatus.CREATED).body(BookingResponse.from(resultado));
+    }
+
+    /**
+     * Usado pela pagina publica para fazer polling do status do pagamento ate
+     * o webhook confirmar, e para retomar a tela de pagamento apos um F5 (o
+     * QR Code e rebuscado no Asaas enquanto o pagamento estiver pendente,
+     * ver BookingCheckoutService.buscarStatusAtual).
+     */
+    @GetMapping("/{bookingId}")
+    public BookingResponse buscar(@PathVariable String slug, @PathVariable Long bookingId) {
+        return BookingResponse.from(bookingCheckoutService.buscarStatusAtual(bookingId, slug));
     }
 
 }

@@ -33,4 +33,10 @@ public class AsaasPaymentGatewayService implements PaymentGatewayService {
         return new PixChargeResult(payment.id(), qrCode.payload(), qrCode.encodedImage());
     }
 
+    @Override
+    public PixChargeResult buscarQrCodePix(String paymentId) {
+        AsaasPixQrCodeResponse qrCode = asaasClient.buscarQrCodePix(paymentId);
+        return new PixChargeResult(paymentId, qrCode.payload(), qrCode.encodedImage());
+    }
+
 }

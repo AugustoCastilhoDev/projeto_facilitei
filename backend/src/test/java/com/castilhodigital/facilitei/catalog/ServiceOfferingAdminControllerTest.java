@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -114,6 +115,12 @@ class ServiceOfferingAdminControllerTest {
     @Test
     void desativarRetorna204() throws Exception {
         mockMvc.perform(delete("/api/admin/tenants/1/services/9"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void ativarRetorna204() throws Exception {
+        mockMvc.perform(patch("/api/admin/tenants/1/services/9/ativar"))
                 .andExpect(status().isNoContent());
     }
 

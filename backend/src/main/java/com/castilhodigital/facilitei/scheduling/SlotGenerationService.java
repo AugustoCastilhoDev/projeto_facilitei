@@ -2,6 +2,7 @@ package com.castilhodigital.facilitei.scheduling;
 
 import com.castilhodigital.facilitei.catalog.ServiceOffering;
 import com.castilhodigital.facilitei.catalog.ServiceOfferingService;
+import com.castilhodigital.facilitei.common.exception.RegraDeNegocioException;
 import com.castilhodigital.facilitei.tenant.Tenant;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -36,6 +37,9 @@ public class SlotGenerationService {
     @Transactional
     public List<Slot> gerarSlotsParaData(Long tenantId, Long serviceId, LocalDate data) {
         ServiceOffering service = serviceOfferingService.buscarPorIdETenant(tenantId, serviceId);
+        if (!service.isAtivo()) {
+            throw new RegraDeNegocioException("Nao e possivel gerar horarios para um servico desativado.");
+        }
         Tenant tenant = service.getTenant();
 
         LocalDateTime inicio = LocalDateTime.of(data, tenant.getHorarioAbertura());

@@ -1,0 +1,61 @@
+<h2 mat-dialog-title>{{ editando ? 'Editar servico' : 'Novo servico' }}</h2>
+
+<form [formGroup]="form" (ngSubmit)="salvar()">
+  <mat-dialog-content>
+    <mat-form-field appearance="outline" class="campo">
+      <mat-label>Nome</mat-label>
+      <input matInput formControlName="nome" />
+      @if (form.controls.nome.hasError('required') && form.controls.nome.touched) {
+        <mat-error>Nome e obrigatorio.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="campo">
+      <mat-label>Duracao (minutos)</mat-label>
+      <input matInput type="number" formControlName="duracaoMin" min="1" />
+      @if (form.controls.duracaoMin.hasError('required') && form.controls.duracaoMin.touched) {
+        <mat-error>Duracao e obrigatoria.</mat-error>
+      } @else if (form.controls.duracaoMin.hasError('min') && form.controls.duracaoMin.touched) {
+        <mat-error>Duracao deve ser maior que zero.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="campo">
+      <mat-label>Preco (R$)</mat-label>
+      <input matInput type="number" formControlName="preco" min="0" step="0.01" />
+      @if (form.controls.preco.hasError('required') && form.controls.preco.touched) {
+        <mat-error>Preco e obrigatorio.</mat-error>
+      } @else if (form.controls.preco.hasError('min') && form.controls.preco.touched) {
+        <mat-error>Preco nao pode ser negativo.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="campo">
+      <mat-label>Sinal (%)</mat-label>
+      <input matInput type="number" formControlName="sinalPercentual" min="0" max="100" />
+      @if (form.controls.sinalPercentual.hasError('required') && form.controls.sinalPercentual.touched) {
+        <mat-error>Percentual de sinal e obrigatorio.</mat-error>
+      } @else if (
+        (form.controls.sinalPercentual.hasError('min') || form.controls.sinalPercentual.hasError('max')) &&
+        form.controls.sinalPercentual.touched
+      ) {
+        <mat-error>Percentual de sinal deve estar entre 0 e 100.</mat-error>
+      }
+    </mat-form-field>
+
+    @if (erro()) {
+      <p class="erro">{{ erro() }}</p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="cancelar()">Cancelar</button>
+    <button mat-flat-button color="primary" type="submit" [disabled]="carregando()">
+      @if (carregando()) {
+        <mat-spinner diameter="20" />
+      } @else {
+        Salvar
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

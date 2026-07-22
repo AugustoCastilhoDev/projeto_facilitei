@@ -17,17 +17,30 @@ import org.springframework.transaction.annotation.Transactional;
 public class SlotService {
 
     private static final ZoneId ZONE_ID = ZoneId.of("America/Sao_Paulo");
+    private static final List<SlotStatus> STATUS_OCUPADOS = List.of(SlotStatus.RESERVADO, SlotStatus.CONFIRMADO);
 
     private final SlotRepository slotRepository;
     private final TenantService tenantService;
 
-    /** Listagem publica (endpoint sem autenticacao da etapa 4) por slug + dia. */
+    /**
+     * Listagem publica (endpoint sem autenticacao da etapa 4) por slug + dia.
+     * Exclui slots que, apesar de DISPONIVEL para o proprio servico, teriam
+     * seu horario sobreposto por outro servico ja reservado/confirmado no
+     * mesmo periodo (o negocio e modelado como um unico profissional/cadeira
+     * - dois servicos diferentes nao podem acontecer ao mesmo tempo).
+     */
     @Transactional(readOnly = true)
     public List<Slot> listarDisponiveisPorSlug(String tenantSlug, LocalDate data) {
         Tenant tenant = tenantService.buscarPorSlug(tenantSlug);
         OffsetDateTime inicio = data.atStartOfDay(ZONE_ID).toOffsetDateTime();
         OffsetDateTime fim = data.plusDays(1).atStartOfDay(ZONE_ID).toOffsetDateTime();
-        return slotRepository.findDisponiveisComServico(tenant.getId(), SlotStatus.DISPONIVEL, inicio, fim);
+
+        List<Slot> disponiveis = slotRepository.findDisponiveisComServico(tenant.getId(), SlotStatus.DISPONIVEL, inicio, fim);
+        List<Slot> ocupados = slotRepository.findOcupadosNoIntervalo(tenant.getId(), STATUS_OCUPADOS, inicio, fim);
+
+        return disponiveis.stream()
+                .filter(candidato -> ocupados.stream().noneMatch(outro -> seSobrepoe(candidato, outro)))
+                .toList();
     }
 
     /** Agenda do admin (dia ou semana, todos os status) - dataInicio/dataFim sao inclusivos. */
@@ -38,13 +51,30 @@ public class SlotService {
         return slotRepository.findAgendaComServico(tenantId, inicio, fim);
     }
 
-    /** Marca o slot como RESERVADO ao iniciar um booking (cobranca Pix ainda pendente). */
+    /**
+     * Marca o slot como RESERVADO ao iniciar um booking (cobranca Pix ainda
+     * pendente). Rejeita se o horario conflitar com outro servico ja
+     * reservado/confirmado no mesmo periodo - a listagem publica ja filtra
+     * isso, mas a checagem e repetida aqui como defesa contra corrida entre
+     * requisicoes concorrentes ou uma chamada direta a API.
+     */
     @Transactional
     public Slot reservar(Long slotId) {
         Slot slot = buscarPorId(slotId);
         if (slot.getStatus() != SlotStatus.DISPONIVEL) {
             throw new RegraDeNegocioException("Este horario nao esta mais disponivel.");
         }
+
+        OffsetDateTime inicioDoDia = slot.getDataHora().toLocalDate().atStartOfDay(ZONE_ID).toOffsetDateTime();
+        OffsetDateTime fimDoDia = inicioDoDia.plusDays(1);
+        List<Slot> ocupados = slotRepository.findOcupadosNoIntervalo(
+                slot.getTenant().getId(), STATUS_OCUPADOS, inicioDoDia, fimDoDia);
+
+        boolean conflito = ocupados.stream().anyMatch(outro -> seSobrepoe(slot, outro));
+        if (conflito) {
+            throw new RegraDeNegocioException("Este horario conflita com outro servico ja reservado no mesmo periodo.");
+        }
+
         slot.setStatus(SlotStatus.RESERVADO);
         return slot;
     }
@@ -77,6 +107,22 @@ public class SlotService {
     public Slot buscarPorIdETenant(Long slotId, Long tenantId) {
         return slotRepository.findByIdAndTenantId(slotId, tenantId)
                 .orElseThrow(() -> new EntidadeNaoEncontradaException("Slot nao encontrado (id=" + slotId + ")."));
+    }
+
+    /**
+     * Dois servicos diferentes nao podem ocupar o mesmo profissional/cadeira
+     * ao mesmo tempo, entao o conflito e por SOBREPOSICAO de intervalo (nao
+     * so "mesmo horario exato"), ja que cada servico pode ter uma duracao
+     * diferente (ex.: um corte de 30min pode se sobrepor parcialmente com
+     * uma coloracao de 90min).
+     */
+    private boolean seSobrepoe(Slot a, Slot b) {
+        if (a.getId() != null && a.getId().equals(b.getId())) {
+            return false;
+        }
+        OffsetDateTime fimA = a.getDataHora().plusMinutes(a.getService().getDuracaoMin());
+        OffsetDateTime fimB = b.getDataHora().plusMinutes(b.getService().getDuracaoMin());
+        return a.getDataHora().isBefore(fimB) && fimA.isAfter(b.getDataHora());
     }
 
 }

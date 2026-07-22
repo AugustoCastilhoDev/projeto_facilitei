@@ -84,8 +84,8 @@ class AsaasWebhookControllerTest {
     }
 
     @Test
-    void eventoIrrelevanteNaoChamaConfirmarPagamento() throws Exception {
-        String body = "{\"event\":\"PAYMENT_OVERDUE\",\"payment\":{\"id\":\"pay_1\",\"status\":\"OVERDUE\"}}";
+    void eventoIrrelevanteNaoChamaBookingService() throws Exception {
+        String body = "{\"event\":\"PAYMENT_CREATED\",\"payment\":{\"id\":\"pay_1\",\"status\":\"PENDING\"}}";
 
         mockMvc.perform(post("/api/webhooks/asaas")
                         .header("asaas-access-token", "segredo-teste")
@@ -94,6 +94,19 @@ class AsaasWebhookControllerTest {
                 .andExpect(status().isOk());
 
         verifyNoInteractions(bookingService);
+    }
+
+    @Test
+    void eventoPagamentoVencidoChamaMarcarComoExpirado() throws Exception {
+        String body = "{\"event\":\"PAYMENT_OVERDUE\",\"payment\":{\"id\":\"pay_1\",\"status\":\"OVERDUE\"}}";
+
+        mockMvc.perform(post("/api/webhooks/asaas")
+                        .header("asaas-access-token", "segredo-teste")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk());
+
+        verify(bookingService).marcarComoExpirado("pay_1");
     }
 
 }

@@ -19,10 +19,16 @@ public interface SlotRepository extends JpaRepository<Slot, Long> {
      * Como open-in-view=false (etapa 1), sem o fetch aqui o acesso a
      * slot.getService().getNome() estoura LazyInitializationException -
      * foi exatamente o que aconteceu no teste manual desta etapa.
+     *
+     * Filtra tambem por service.ativo = true: um servico desativado nao
+     * deve mais ser reservavel publicamente, mesmo que ainda existam slots
+     * DISPONIVEL gerados antes da desativacao (bug encontrado em teste
+     * manual - a geracao de horarios ja bloqueia servico inativo, mas sem
+     * este filtro slots antigos continuariam aparecendo na agenda publica).
      */
     @Query("SELECT s FROM Slot s JOIN FETCH s.service "
-            + "WHERE s.tenant.id = :tenantId AND s.status = :status AND s.dataHora BETWEEN :inicio AND :fim "
-            + "ORDER BY s.dataHora")
+            + "WHERE s.tenant.id = :tenantId AND s.status = :status AND s.service.ativo = true "
+            + "AND s.dataHora BETWEEN :inicio AND :fim ORDER BY s.dataHora")
     List<Slot> findDisponiveisComServico(@Param("tenantId") Long tenantId, @Param("status") SlotStatus status,
                                           @Param("inicio") OffsetDateTime inicio, @Param("fim") OffsetDateTime fim);
 
@@ -32,5 +38,17 @@ public interface SlotRepository extends JpaRepository<Slot, Long> {
             + "ORDER BY s.dataHora")
     List<Slot> findAgendaComServico(@Param("tenantId") Long tenantId,
                                      @Param("inicio") OffsetDateTime inicio, @Param("fim") OffsetDateTime fim);
+
+    /**
+     * Slots ocupados (RESERVADO/CONFIRMADO) de QUALQUER servico do tenant no
+     * intervalo informado - usado para detectar conflito de horario entre
+     * servicos diferentes (ex.: "Corte" e "Barba" gerados para o mesmo
+     * horario, mas o negocio so tem um profissional/cadeira). JOIN FETCH em
+     * "service" porque o calculo de sobreposicao precisa de duracaoMin.
+     */
+    @Query("SELECT s FROM Slot s JOIN FETCH s.service "
+            + "WHERE s.tenant.id = :tenantId AND s.status IN :statuses AND s.dataHora BETWEEN :inicio AND :fim")
+    List<Slot> findOcupadosNoIntervalo(@Param("tenantId") Long tenantId, @Param("statuses") List<SlotStatus> statuses,
+                                        @Param("inicio") OffsetDateTime inicio, @Param("fim") OffsetDateTime fim);
 
 }

@@ -34,6 +34,14 @@ public class BookingCheckoutService {
                 .multiply(service.getSinalPercentual())
                 .divide(CEM, 2, RoundingMode.HALF_UP);
 
+        if (valorSinal.signum() <= 0) {
+            // servico sem sinal (sinalPercentual = 0): a Asaas nao aceita
+            // cobranca de valor zero, entao confirma direto - pagamento no local.
+            bookingService.confirmarSemSinal(booking.getId());
+            Booking bookingConfirmado = bookingService.buscarPorId(booking.getId());
+            return new CheckoutResult(bookingConfirmado, null);
+        }
+
         PixChargeRequest request = new PixChargeRequest(
                 clienteNome, clienteTelefone, clienteCpfCnpj, valorSinal, "booking-" + booking.getId());
         PixChargeResult resultado = paymentGatewayService.criarCobrancaPix(request);
@@ -42,6 +50,26 @@ public class BookingCheckoutService {
 
         Booking bookingAtualizado = bookingService.buscarPorId(booking.getId());
         return new CheckoutResult(bookingAtualizado, resultado.qrCodeImagemBase64());
+    }
+
+    /**
+     * Consulta o status atual da reserva para a pagina publica de pagamento.
+     * Enquanto o pagamento estiver PENDENTE, rebusca o QR Code no Asaas (ele
+     * nao e persistido no Booking - so o payload "copia e cola" e guardado),
+     * permitindo que a tela de pagamento sobreviva a um F5 do cliente. Uma
+     * vez PAGO/EXPIRADO/CANCELADO, nao ha mais motivo para mostrar QR Code,
+     * entao evitamos a chamada extra ao gateway.
+     */
+    @Transactional(readOnly = true)
+    public CheckoutResult buscarStatusAtual(Long bookingId, String tenantSlug) {
+        Booking booking = bookingService.buscarPorIdETenantSlug(bookingId, tenantSlug);
+
+        if (booking.getStatusPagamento() != PaymentStatus.PENDENTE || booking.getAsaasPaymentId() == null) {
+            return new CheckoutResult(booking, null);
+        }
+
+        PixChargeResult qrCode = paymentGatewayService.buscarQrCodePix(booking.getAsaasPaymentId());
+        return new CheckoutResult(booking, qrCode.qrCodeImagemBase64());
     }
 
 }

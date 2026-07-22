@@ -1,6 +1,7 @@
 package com.castilhodigital.facilitei.booking;
 
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -111,6 +112,37 @@ class PublicBookingControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.erros.clienteCpfCnpj").exists());
+    }
+
+    @Test
+    void buscarStatusDaReservaRetornaPagamentoAtual() throws Exception {
+        Slot slot = new Slot();
+        ReflectionTestUtils.setField(slot, "id", 7L);
+
+        Booking booking = new Booking();
+        booking.setSlot(slot);
+        booking.setClienteNome("Cliente Teste");
+        booking.setClienteTelefone("+5511999999999");
+        booking.setStatusPagamento(PaymentStatus.PAGO);
+        booking.setAsaasPaymentId("pay_123");
+        booking.setAsaasPixPayload("00020126...copiaecola");
+        ReflectionTestUtils.setField(booking, "id", 42L);
+
+        when(bookingCheckoutService.buscarStatusAtual(42L, "barbearia-do-ze"))
+                .thenReturn(new CheckoutResult(booking, null));
+
+        mockMvc.perform(get("/api/public/tenants/barbearia-do-ze/bookings/42"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.statusPagamento").value("PAGO"));
+    }
+
+    @Test
+    void buscarStatusDeReservaDeOutroTenantRetorna404() throws Exception {
+        when(bookingCheckoutService.buscarStatusAtual(42L, "outro-tenant"))
+                .thenThrow(new EntidadeNaoEncontradaException("Reserva nao encontrada (id=42)."));
+
+        mockMvc.perform(get("/api/public/tenants/outro-tenant/bookings/42"))
+                .andExpect(status().isNotFound());
     }
 
 }

@@ -1,0 +1,40 @@
+.servicos-toolbar {
+  display: flex;
+  margin-bottom: 16px;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.carregando {
+  display: flex;
+  justify-content: center;
+  padding: 32px;
+}
+
+.vazio {
+  opacity: 0.7;
+}
+
+.tabela-servicos {
+  width: 100%;
+}
+
+.status-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status-ativo {
+  background: #d7f0d7;
+  color: #1e5e1e;
+}
+
+.status-inativo {
+  background: #eee;
+  color: #666;
+}

@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AsaasWebhookController {
 
     private static final Set<String> EVENTOS_DE_PAGAMENTO_CONFIRMADO = Set.of("PAYMENT_CONFIRMED", "PAYMENT_RECEIVED");
+    private static final Set<String> EVENTOS_DE_PAGAMENTO_VENCIDO = Set.of("PAYMENT_OVERDUE");
 
     private final BookingService bookingService;
     private final AsaasProperties asaasProperties;
@@ -43,6 +44,8 @@ public class AsaasWebhookController {
 
         if (EVENTOS_DE_PAGAMENTO_CONFIRMADO.contains(evento.event()) && evento.payment() != null) {
             bookingService.confirmarPagamento(evento.payment().id());
+        } else if (EVENTOS_DE_PAGAMENTO_VENCIDO.contains(evento.event()) && evento.payment() != null) {
+            bookingService.marcarComoExpirado(evento.payment().id());
         }
 
         return ResponseEntity.ok().build();

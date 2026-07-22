@@ -50,6 +50,12 @@ public class ServiceOfferingService {
         service.setAtivo(false);
     }
 
+    @Transactional
+    public void ativar(Long tenantId, Long serviceId) {
+        ServiceOffering service = buscarPorIdETenant(tenantId, serviceId);
+        service.setAtivo(true);
+    }
+
     @Transactional(readOnly = true)
     public List<ServiceOffering> listarTodos(Long tenantId) {
         return serviceOfferingRepository.findByTenantIdOrderByNome(tenantId);

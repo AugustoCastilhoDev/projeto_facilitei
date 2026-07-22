@@ -10,4 +10,11 @@ public interface PaymentGatewayService {
 
     PixChargeResult criarCobrancaPix(PixChargeRequest request);
 
+    /**
+     * Rebusca o payload/QR Code de uma cobranca ja existente. Usado quando o
+     * cliente recarrega a pagina de pagamento: o QR Code (imagem) nao e
+     * persistido no Booking, entao precisa ser buscado de novo no gateway.
+     */
+    PixChargeResult buscarQrCodePix(String paymentId);
+
 }

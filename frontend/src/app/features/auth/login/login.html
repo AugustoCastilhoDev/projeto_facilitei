@@ -4,7 +4,37 @@
       <mat-card-title>Entrar no Facilitei</mat-card-title>
     </mat-card-header>
     <mat-card-content>
-      <p>Formulario de login chega na etapa 8.</p>
+      <form [formGroup]="form" (ngSubmit)="entrar()">
+        <mat-form-field appearance="outline" class="campo">
+          <mat-label>Email</mat-label>
+          <input matInput type="email" formControlName="email" autocomplete="username" />
+          @if (form.controls.email.hasError('required') && form.controls.email.touched) {
+            <mat-error>Email e obrigatorio.</mat-error>
+          } @else if (form.controls.email.hasError('email') && form.controls.email.touched) {
+            <mat-error>Email invalido.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="campo">
+          <mat-label>Senha</mat-label>
+          <input matInput type="password" formControlName="senha" autocomplete="current-password" />
+          @if (form.controls.senha.hasError('required') && form.controls.senha.touched) {
+            <mat-error>Senha e obrigatoria.</mat-error>
+          }
+        </mat-form-field>
+
+        @if (erro()) {
+          <p class="erro">{{ erro() }}</p>
+        }
+
+        <button mat-flat-button color="primary" type="submit" class="botao-entrar" [disabled]="carregando()">
+          @if (carregando()) {
+            <mat-spinner diameter="20" />
+          } @else {
+            Entrar
+          }
+        </button>
+      </form>
     </mat-card-content>
   </mat-card>
 </div>
