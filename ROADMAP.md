@@ -35,7 +35,7 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 
 ### Infraestrutura
 - [ ] Deploy em produção: Postgres gerenciado com backup, domínio, HTTPS
-- [ ] Testar o webhook da Asaas com URL pública de verdade (hoje só foi simulado localmente)
+- [x] Testar o webhook da Asaas com URL pública de verdade (hoje só foi simulado localmente)
 - [x] Hardening básico: rate limiting no login, segredos fora de arquivo `.yml` (usar secrets manager do provedor de hospedagem)
 
 ### Jurídico & financeiro
@@ -56,7 +56,7 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 - [ ] Relatórios básicos para o dono do negócio: faturamento do período, taxa de não comparecimento, clientes recorrentes
 
 ### Infraestrutura
-- [ ] CI/CD — build e testes automáticos a cada push
+- [x] CI/CD — build e testes automáticos a cada push
 - [ ] Observabilidade: logs estruturados, monitoramento de erro (ex.: Sentry), alerta de indisponibilidade
 - [ ] Testes end-to-end do fluxo completo (Playwright/Cypress), não só unitários
 

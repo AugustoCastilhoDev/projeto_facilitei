@@ -1,5 +1,7 @@
 # Facilitei
 
+[![CI](https://github.com/AugustoCastilhoDev/projeto_facilitei/actions/workflows/ci.yml/badge.svg)](https://github.com/AugustoCastilhoDev/projeto_facilitei/actions/workflows/ci.yml)
+
 SaaS de agendamento com sinal via Pix para pequenos negócios de serviço (barbearias, salões, esteticistas etc.). Cada negócio (tenant) cadastra seus serviços, gera horários a partir do expediente configurado, e recebe agendamentos através de uma página pública própria — o cliente final escolhe serviço e horário, paga o sinal via Pix (Asaas) e a reserva é confirmada automaticamente por webhook.
 
 Projeto construído como portfólio técnico, documentando as decisões de arquitetura e os problemas reais encontrados (e corrigidos) ao longo do desenvolvimento.
@@ -85,12 +87,13 @@ Pontos que valem a pena mencionar numa entrevista — cada um resolveu um proble
 - **Expiração de reserva pendente: dois mecanismos complementares.** O webhook `PAYMENT_OVERDUE` da Asaas usa `dueDate`, que é só uma *data* — não tem precisão de horário. Uma reserva feita hoje às 14h para um horário daqui a pouco só venceria por lá "amanhã", muito depois do compromisso já ter passado. Por isso existe também um `@Scheduled` (`BookingExpirationScheduler`, a cada 5 minutos) que expira reservas pendentes cujo horário do slot esteja a 1h de distância ou menos — validado simulando o cenário real (booking com slot no passado, aguardando o scheduler rodar de fato).
 - **QR Code Pix não é persistido, mas é re-buscável.** A imagem do QR Code não fica salva no banco (só o payload "copia e cola" e o id do pagamento), mas a página de pagamento sobrevive a um F5 graças à rota `/agendar/:slug/reserva/:bookingId` + um endpoint que rebusca o QR Code na Asaas enquanto o pagamento estiver pendente.
 - **Sinal zero vira "pagamento no local", não uma cobrança de R$0,00.** A Asaas não aceita cobrança de valor zero. Se `sinalPercentual = 0`, o checkout pula a Asaas inteiramente e confirma a reserva direto (`status_pagamento = SEM_SINAL`).
+- **Webhook da Asaas tem uma "fila de sincronização" própria, separada do cadastro da URL.** Ao testar com um túnel ngrok real, o webhook ficou marcado como "Interrompido" mesmo com a URL e o token corretos — o motivo não é falha de entrega (o log de webhooks da Asaas não registrava nenhuma tentativa), e sim um toggle "Fila de sincronização ativada?" que vem desligado por padrão ao criar o webhook. Eventos são gerados mesmo com a fila pausada, mas só são entregues depois que ela é reativada manualmente no painel.
 
 ## Limitações conhecidas
 
 - **Sem split de pagamento**: o sinal cai na conta Asaas da própria plataforma; repassar ao dono do negócio seria manual (existe um campo `asaas_wallet_id` em `tenants` reservado para isso no futuro).
 - **Um cliente não pode agendar múltiplos serviços numa única reserva/checkout** — decisão consciente de escopo, ver histórico do projeto. O modelo atual é 1 slot = 1 booking.
-- **Webhook validado só localmente** (chamada simulada diretamente no endpoint) — não foi testado com um túnel público real (ex.: ngrok) recebendo eventos de verdade da Asaas em produção.
+- **Webhook validado com túnel público (ngrok) contra a sandbox da Asaas**, incluindo uma reserva real, confirmação de pagamento pelo painel da Asaas e recebimento do evento `PAYMENT_CONFIRMED` pelo backend local — mas ainda não em produção, nem sob carga.
 - **Fuso horário fixo em `America/Sao_Paulo`** — não há suporte a tenants em outros fusos.
 - **CPF/CNPJ é obrigatório no formulário público mesmo quando o serviço não cobra sinal** (a validação está no DTO, não condicionada ao serviço escolhido) — só é estritamente necessário quando uma cobrança Pix de fato será gerada.
 
@@ -171,3 +174,5 @@ cd frontend && ng test --watch=false
 ```
 
 56 testes no backend e 9 suítes no frontend, cobrindo desde regras de negócio isoladas (cálculo de sinal, conflito de horário, expiração, rate limiting) até os controllers REST e a integração real com o sandbox da Asaas.
+
+O GitHub Actions (`.github/workflows/ci.yml`) roda exatamente esses mesmos comandos — `mvn test` + `mvn package` no backend, `ng test` + `ng build` no frontend — a cada push e pull request para a `main`. Nenhum teste depende de banco de dados real (tudo via `@WebMvcTest`/Mockito ou testes puros de unidade), então o job do backend não precisa subir um Postgres.
