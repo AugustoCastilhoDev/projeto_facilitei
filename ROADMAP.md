@@ -58,7 +58,7 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 ### Infraestrutura
 - [x] CI/CD — build e testes automáticos a cada push
 - [ ] Observabilidade: logs estruturados, monitoramento de erro (ex.: Sentry), alerta de indisponibilidade
-- [ ] Testes end-to-end do fluxo completo (Playwright/Cypress), não só unitários
+- [x] Testes end-to-end do fluxo completo (Playwright/Cypress), não só unitários — rodando localmente; ainda não integrado ao CI (exigiria Postgres + backend real no workflow)
 
 ### Jurídico & financeiro
 - [ ] Contrato entre plataforma e cada negócio definindo quem é controlador e quem é operador dos dados (LGPD)

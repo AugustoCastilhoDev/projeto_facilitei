@@ -176,3 +176,5 @@ cd frontend && ng test --watch=false
 56 testes no backend e 9 suítes no frontend, cobrindo desde regras de negócio isoladas (cálculo de sinal, conflito de horário, expiração, rate limiting) até os controllers REST e a integração real com o sandbox da Asaas.
 
 O GitHub Actions (`.github/workflows/ci.yml`) roda exatamente esses mesmos comandos — `mvn test` + `mvn package` no backend, `ng test` + `ng build` no frontend — a cada push e pull request para a `main`. Nenhum teste depende de banco de dados real (tudo via `@WebMvcTest`/Mockito ou testes puros de unidade), então o job do backend não precisa subir um Postgres.
+
+Além desses, há uma suíte de testes end-to-end (Playwright) em [`e2e/`](e2e/README.md), que dirige a UI de verdade num navegador real: cadastro do negócio → login → criação de serviço → geração de horários → agendamento público, cobrindo tanto o fluxo sem sinal (confirmação imediata) quanto o fluxo com sinal (cobrança Pix real na sandbox da Asaas). Roda só localmente por enquanto — ver o README da pasta para pré-requisitos.
