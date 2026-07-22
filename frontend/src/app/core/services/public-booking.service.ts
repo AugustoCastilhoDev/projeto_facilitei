@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Booking, CriarBookingRequest } from '../models/booking.model';
+import { Profissional } from '../models/profissional.model';
 import { ServiceOffering } from '../models/service-offering.model';
 import { Slot } from '../models/slot.model';
 import { PublicTenant } from '../models/tenant.model';
@@ -18,6 +19,12 @@ export class PublicBookingService {
 
   listarServicos(slug: string): Observable<ServiceOffering[]> {
     return this.http.get<ServiceOffering[]>(`${environment.apiUrl}/public/tenants/${slug}/services`);
+  }
+
+  listarProfissionais(slug: string, serviceId: number): Observable<Profissional[]> {
+    return this.http.get<Profissional[]>(`${environment.apiUrl}/public/tenants/${slug}/profissionais`, {
+      params: { serviceId },
+    });
   }
 
   listarSlotsDisponiveis(slug: string, data: string): Observable<Slot[]> {

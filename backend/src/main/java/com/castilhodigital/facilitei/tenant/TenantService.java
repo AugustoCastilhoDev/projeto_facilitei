@@ -2,7 +2,6 @@ package com.castilhodigital.facilitei.tenant;
 
 import com.castilhodigital.facilitei.common.exception.EntidadeNaoEncontradaException;
 import com.castilhodigital.facilitei.common.exception.RegraDeNegocioException;
-import java.time.LocalTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,10 +14,7 @@ public class TenantService {
     private final TenantRepository tenantRepository;
 
     @Transactional
-    public Tenant registrar(String nome, String slug, LocalTime horarioAbertura, LocalTime horarioFechamento) {
-        if (horarioAbertura == null || horarioFechamento == null || !horarioAbertura.isBefore(horarioFechamento)) {
-            throw new RegraDeNegocioException("Horario de abertura deve ser anterior ao horario de fechamento.");
-        }
+    public Tenant registrar(String nome, String slug) {
         if (tenantRepository.existsBySlug(slug)) {
             throw new RegraDeNegocioException("Ja existe um tenant com o slug '" + slug + "'.");
         }
@@ -26,8 +22,6 @@ public class TenantService {
         Tenant tenant = new Tenant();
         tenant.setNome(nome);
         tenant.setSlug(slug);
-        tenant.setHorarioAbertura(horarioAbertura);
-        tenant.setHorarioFechamento(horarioFechamento);
         return tenantRepository.save(tenant);
     }
 

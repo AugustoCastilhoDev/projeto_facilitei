@@ -2,7 +2,7 @@
 
 > Como usar: marque `[x]` conforme for concluindo cada item. Sinta-se livre para editar, reordenar, adicionar notas/datas ou remover itens que deixarem de fazer sentido — este documento é vivo, não um contrato fechado.
 
-O que existe hoje é uma base técnica sólida (agendamento multi-tenant, sinal via Pix, painel admin, onboarding self-service, ~65 testes automatizados). O sinal já cai direto na conta Asaas de cada negócio (modelo "traga sua própria conta de pagamento" — BYOPP, ver README) — decisão tomada no lugar do split/marketplace originalmente cogitado, porque não exige formalização prévia com a Asaas nem custodia dinheiro de terceiros. O que ainda falta para vender de verdade não é código — é um mínimo de jurídico (Termos de Uso/LGPD) e decidir onde hospedar em produção.
+O que existe hoje é uma base técnica sólida (agendamento multi-tenant com múltiplos profissionais por negócio, sinal via Pix, painel admin, onboarding self-service, ~95 testes automatizados). O sinal já cai direto na conta Asaas de cada negócio (modelo "traga sua própria conta de pagamento" — BYOPP, ver README) — decisão tomada no lugar do split/marketplace originalmente cogitado, porque não exige formalização prévia com a Asaas nem custodia dinheiro de terceiros. Uma minuta de Termos de Uso/Política de Privacidade já foi escrita (`docs/`), pendente de revisão profissional. O que ainda falta para vender de verdade não é código — é fechar esse jurídico com um profissional e decidir onde hospedar em produção.
 
 Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto).
 
@@ -13,11 +13,11 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 | Hoje (MVP) | Produto vendável |
 |---|---|
 | ~~Cadastro de negócio só via API (curl)~~ Onboarding self-service ✅ | — |
-| 1 profissional/cadeira por negócio | Múltiplos profissionais, cada um com sua agenda |
+| ~~1 profissional/cadeira por negócio~~ Múltiplos profissionais, cada um com sua agenda ✅ | Vincular serviço a profissional direto pela tela de Serviços (hoje só pela tela de Profissionais) |
 | ~~Sinal cai na conta Asaas da plataforma~~ Sinal direto na conta do negócio (BYOPP) ✅ | Onboarding assistido/automatizado da conta Asaas do tenant (hoje é manual, copiar/colar a chave) |
 | Sem cobrança pela assinatura do SaaS | Billing recorrente, planos e trial |
 | Roda só localmente (docker compose) | Deploy em produção, com monitoramento |
-| Sem Termos de Uso nem Política de Privacidade | LGPD tratada, contrato entre plataforma e negócio |
+| ~~Sem Termos de Uso nem Política de Privacidade~~ Minuta escrita, pendente revisão profissional ✅ | LGPD tratada, contrato entre plataforma e negócio |
 | Notificação = log no console | WhatsApp de verdade, via API oficial |
 
 ---
@@ -40,7 +40,8 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 
 ### Jurídico & financeiro
 - [ ] Conversar com contador sobre CNPJ e enquadramento tributário correto
-- [ ] Escrever/contratar Termos de Uso + Política de Privacidade (LGPD) — inclui deixar claro que a Facilitei não custodia o pagamento do sinal (modelo BYOPP), só a assinatura do SaaS
+- [x] Escrever uma minuta de Termos de Uso + Política de Privacidade (LGPD) — deixa claro que a Facilitei não custodia o pagamento do sinal (modelo BYOPP), só a assinatura do SaaS; ver [`docs/termos-de-uso.md`](docs/termos-de-uso.md) e [`docs/politica-de-privacidade.md`](docs/politica-de-privacidade.md)
+- [ ] Revisar a minuta acima com contador/advogado e preencher os campos pendentes (razão social, CNPJ, endereço, foro) antes de publicar de verdade
 - ~~Formalizar com a Asaas o modelo de "plataforma com split de pagamento"~~ — decidido não seguir por esse caminho: o modelo BYOPP não exige formalização nenhuma com a Asaas
 - [x] Implementar o recebimento direto na conta do próprio tenant (modelo BYOPP: chave Asaas por tenant, cifrada em repouso, webhook autenticado por tenant) — ver README/`docs/configurar-pagamentos.md`
 
@@ -50,7 +51,7 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 ## Fase 2 — Produto completo *(~2–3 meses)*
 
 ### Produto
-- [ ] Suporte a múltiplos profissionais/recursos por negócio (hoje o modelo é uma cadeira só)
+- [x] Suporte a múltiplos profissionais/recursos por negócio — cada profissional com expediente próprio e seus próprios serviços vinculados (N:N); conflito de horário passou a ser escopado por profissional, não mais por tenant inteiro
 - [ ] WhatsApp real via API oficial (Meta Cloud API, Twilio ou Zenvia), substituindo o mock de console
 - [ ] Cobrança da própria assinatura SaaS — planos, período de teste, cancelamento
 - [ ] Relatórios básicos para o dono do negócio: faturamento do período, taxa de não comparecimento, clientes recorrentes
@@ -107,6 +108,6 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 ## Primeiros passos concretos (próximas 2–3 semanas)
 
 1. [ ] Conversar com um contador sobre CNPJ e enquadramento
-2. [ ] Escrever (ou contratar) uma versão mínima de Termos de Uso e Política de Privacidade
+2. [ ] Revisar a minuta de Termos de Uso e Política de Privacidade com contador/advogado (rascunho já escrito, ver `docs/`)
 3. [ ] Escolher onde hospedar em produção e subir o ambiente com domínio e HTTPS
 4. [ ] Conversar com 5 donos de barbearia/salão reais — mostrar o produto (inclusive como configurar o recebimento Pix), entender objeções, ainda não vender

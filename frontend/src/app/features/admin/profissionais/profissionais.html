@@ -1,0 +1,75 @@
+<div class="profissionais-toolbar">
+  <span class="spacer"></span>
+  <button mat-flat-button color="primary" (click)="novoProfissional()">
+    <mat-icon>add</mat-icon>
+    Novo profissional
+  </button>
+</div>
+
+@if (carregando()) {
+  <div class="carregando">
+    <mat-spinner diameter="32" />
+  </div>
+} @else if (profissionais().length === 0) {
+  <p class="vazio">Nenhum profissional cadastrado ainda.</p>
+} @else {
+  <table mat-table [dataSource]="profissionais()" class="tabela-profissionais">
+    <ng-container matColumnDef="nome">
+      <th mat-header-cell *matHeaderCellDef>Nome</th>
+      <td mat-cell *matCellDef="let profissional">{{ profissional.nome }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="horario">
+      <th mat-header-cell *matHeaderCellDef>Expediente</th>
+      <td mat-cell *matCellDef="let profissional">
+        {{ profissional.horarioAbertura }} - {{ profissional.horarioFechamento }}
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="servicos">
+      <th mat-header-cell *matHeaderCellDef>Servicos</th>
+      <td mat-cell *matCellDef="let profissional">
+        @if (profissional.servicoNomes.length === 0) {
+          <span class="vazio">Nenhum</span>
+        } @else {
+          {{ profissional.servicoNomes.join(', ') }}
+        }
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="status">
+      <th mat-header-cell *matHeaderCellDef>Status</th>
+      <td mat-cell *matCellDef="let profissional">
+        <span class="status-chip" [class.status-ativo]="profissional.ativo" [class.status-inativo]="!profissional.ativo">
+          {{ profissional.ativo ? 'Ativo' : 'Inativo' }}
+        </span>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="acoes">
+      <th mat-header-cell *matHeaderCellDef></th>
+      <td mat-cell *matCellDef="let profissional">
+        <button mat-icon-button (click)="editarProfissional(profissional)" aria-label="Editar" title="Editar">
+          <mat-icon>edit</mat-icon>
+        </button>
+        @if (profissional.ativo) {
+          <button
+            mat-icon-button
+            (click)="desativarProfissional(profissional)"
+            aria-label="Desativar"
+            title="Desativar"
+          >
+            <mat-icon>block</mat-icon>
+          </button>
+        } @else {
+          <button mat-icon-button (click)="ativarProfissional(profissional)" aria-label="Ativar" title="Ativar">
+            <mat-icon>check_circle</mat-icon>
+          </button>
+        }
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="colunas"></tr>
+    <tr mat-row *matRowDef="let row; columns: colunas"></tr>
+  </table>
+}

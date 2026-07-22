@@ -1,0 +1,56 @@
+<h2 mat-dialog-title>{{ editando ? 'Editar profissional' : 'Novo profissional' }}</h2>
+
+<form [formGroup]="form" (ngSubmit)="salvar()">
+  <mat-dialog-content>
+    <mat-form-field appearance="outline" class="campo">
+      <mat-label>Nome</mat-label>
+      <input matInput formControlName="nome" />
+      @if (form.controls.nome.hasError('required') && form.controls.nome.touched) {
+        <mat-error>Nome e obrigatorio.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="campo">
+      <mat-label>Abre as</mat-label>
+      <input matInput type="time" formControlName="horarioAbertura" />
+      @if (form.controls.horarioAbertura.hasError('required') && form.controls.horarioAbertura.touched) {
+        <mat-error>Horario de abertura e obrigatorio.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="campo">
+      <mat-label>Fecha as</mat-label>
+      <input matInput type="time" formControlName="horarioFechamento" />
+      @if (form.controls.horarioFechamento.hasError('required') && form.controls.horarioFechamento.touched) {
+        <mat-error>Horario de fechamento e obrigatorio.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="campo">
+      <mat-label>Servicos que realiza</mat-label>
+      <mat-select formControlName="servicoIds" multiple>
+        @for (servico of data.servicos; track servico.id) {
+          <mat-option [value]="servico.id">{{ servico.nome }}</mat-option>
+        }
+      </mat-select>
+      @if (data.servicos.length === 0) {
+        <mat-hint>Cadastre um servico primeiro para poder vincula-lo aqui.</mat-hint>
+      }
+    </mat-form-field>
+
+    @if (erro()) {
+      <p class="erro">{{ erro() }}</p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="cancelar()">Cancelar</button>
+    <button mat-flat-button color="primary" type="submit" [disabled]="carregando()">
+      @if (carregando()) {
+        <mat-spinner diameter="20" />
+      } @else {
+        Salvar
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

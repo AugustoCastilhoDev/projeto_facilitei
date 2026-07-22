@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.castilhodigital.facilitei.auth.TenantSecurityGuard;
 import com.castilhodigital.facilitei.catalog.ServiceOffering;
 import com.castilhodigital.facilitei.common.exception.AcessoNegadoException;
+import com.castilhodigital.facilitei.professional.Profissional;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -43,8 +44,13 @@ class SlotAdminControllerTest {
         service.setNome("Corte");
         ReflectionTestUtils.setField(service, "id", 4L);
 
+        Profissional profissional = new Profissional();
+        profissional.setNome("Joana");
+        ReflectionTestUtils.setField(profissional, "id", 6L);
+
         Slot slot = new Slot();
         slot.setService(service);
+        slot.setProfissional(profissional);
         slot.setDataHora(LocalDate.now().plusDays(1).atTime(LocalTime.of(9, 0)).atZone(ZoneId.of("America/Sao_Paulo")).toOffsetDateTime());
         slot.setStatus(SlotStatus.DISPONIVEL);
         ReflectionTestUtils.setField(slot, "id", id);
@@ -54,9 +60,11 @@ class SlotAdminControllerTest {
     @Test
     void gerarSlotsRetorna201() throws Exception {
         LocalDate amanha = LocalDate.now().plusDays(1);
-        when(slotGenerationService.gerarSlotsParaData(1L, 4L, amanha)).thenReturn(List.of(novoSlot(10L)));
+        when(slotGenerationService.gerarSlotsParaData(1L, 6L, 4L, amanha)).thenReturn(List.of(novoSlot(10L)));
 
-        mockMvc.perform(post("/api/admin/tenants/1/services/4/slots/gerar").param("data", amanha.toString()))
+        mockMvc.perform(post("/api/admin/tenants/1/services/4/slots/gerar")
+                        .param("profissionalId", "6")
+                        .param("data", amanha.toString()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$[0].id").value(10));
     }
@@ -64,7 +72,7 @@ class SlotAdminControllerTest {
     @Test
     void listarAgendaRetornaTodosOsStatus() throws Exception {
         LocalDate amanha = LocalDate.now().plusDays(1);
-        when(slotService.listarAgendaPorTenant(1L, amanha, amanha)).thenReturn(List.of(novoSlot(11L)));
+        when(slotService.listarAgendaPorTenant(1L, null, amanha, amanha)).thenReturn(List.of(novoSlot(11L)));
 
         mockMvc.perform(get("/api/admin/tenants/1/slots").param("inicio", amanha.toString()).param("fim", amanha.toString()))
                 .andExpect(status().isOk())

@@ -11,13 +11,17 @@ export class SlotService {
   private readonly http = inject(HttpClient);
   private readonly tokenStorage = inject(TokenStorageService);
 
-  listarAgenda(inicio: string, fim: string): Observable<Slot[]> {
-    return this.http.get<Slot[]>(`${this.tenantBaseUrl()}/slots`, { params: { inicio, fim } });
+  listarAgenda(inicio: string, fim: string, profissionalId?: number): Observable<Slot[]> {
+    const params: Record<string, string> = { inicio, fim };
+    if (profissionalId) {
+      params['profissionalId'] = String(profissionalId);
+    }
+    return this.http.get<Slot[]>(`${this.tenantBaseUrl()}/slots`, { params });
   }
 
-  gerarSlots(serviceId: number, data: string): Observable<Slot[]> {
+  gerarSlots(serviceId: number, profissionalId: number, data: string): Observable<Slot[]> {
     return this.http.post<Slot[]>(`${this.tenantBaseUrl()}/services/${serviceId}/slots/gerar`, null, {
-      params: { data },
+      params: { profissionalId, data },
     });
   }
 

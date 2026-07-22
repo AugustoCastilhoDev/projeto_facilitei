@@ -6,7 +6,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
-import java.time.LocalTime;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -59,11 +58,5 @@ public class Tenant extends BaseEntity {
     @Convert(converter = EncryptedStringConverter.class)
     @Column(name = "asaas_webhook_token", columnDefinition = "TEXT")
     private String asaasWebhookToken;
-
-    @Column(name = "horario_abertura", nullable = false)
-    private LocalTime horarioAbertura;
-
-    @Column(name = "horario_fechamento", nullable = false)
-    private LocalTime horarioFechamento;
 
 }

@@ -1,6 +1,6 @@
 # E2E — Facilitei
 
-Testes de ponta a ponta com [Playwright](https://playwright.dev), cobrindo o fluxo completo pela UI: cadastro do negócio (onboarding self-service) → login → criação de serviço → geração de horários → agendamento público → confirmação.
+Testes de ponta a ponta com [Playwright](https://playwright.dev), cobrindo o fluxo completo pela UI: cadastro do negócio (onboarding self-service) → login → criação de serviço → cadastro de profissional vinculado ao serviço → geração de horários → agendamento público (escolha de serviço, profissional e horário) → confirmação.
 
 Cada teste cadastra o **seu próprio tenant** (slug e email com timestamp), então os testes não interferem entre si e podem ser rodados repetidamente sem nenhuma limpeza manual do banco.
 

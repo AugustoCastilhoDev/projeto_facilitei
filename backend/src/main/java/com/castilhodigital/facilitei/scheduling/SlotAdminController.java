@@ -32,19 +32,21 @@ public class SlotAdminController {
     @PostMapping("/services/{serviceId}/slots/gerar")
     public ResponseEntity<List<SlotResponse>> gerarSlots(@PathVariable Long tenantId,
                                                           @PathVariable Long serviceId,
+                                                          @RequestParam Long profissionalId,
                                                           @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
         tenantSecurityGuard.verificarAcessoAoTenant(tenantId);
-        List<Slot> criados = slotGenerationService.gerarSlotsParaData(tenantId, serviceId, data);
+        List<Slot> criados = slotGenerationService.gerarSlotsParaData(tenantId, profissionalId, serviceId, data);
         List<SlotResponse> response = criados.stream().map(SlotResponse::from).toList();
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping("/slots")
     public List<SlotResponse> listarAgenda(@PathVariable Long tenantId,
+                                            @RequestParam(required = false) Long profissionalId,
                                             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
                                             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim) {
         tenantSecurityGuard.verificarAcessoAoTenant(tenantId);
-        return slotService.listarAgendaPorTenant(tenantId, inicio, fim).stream()
+        return slotService.listarAgendaPorTenant(tenantId, profissionalId, inicio, fim).stream()
                 .map(SlotResponse::from)
                 .toList();
     }

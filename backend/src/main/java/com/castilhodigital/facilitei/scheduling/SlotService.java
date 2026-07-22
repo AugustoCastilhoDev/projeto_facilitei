@@ -26,8 +26,9 @@ public class SlotService {
      * Listagem publica (endpoint sem autenticacao da etapa 4) por slug + dia.
      * Exclui slots que, apesar de DISPONIVEL para o proprio servico, teriam
      * seu horario sobreposto por outro servico ja reservado/confirmado no
-     * mesmo periodo (o negocio e modelado como um unico profissional/cadeira
-     * - dois servicos diferentes nao podem acontecer ao mesmo tempo).
+     * mesmo periodo PARA O MESMO PROFISSIONAL (dois servicos diferentes do
+     * mesmo profissional nao podem acontecer ao mesmo tempo, mas
+     * profissionais diferentes sao agendas independentes).
      */
     @Transactional(readOnly = true)
     public List<Slot> listarDisponiveisPorSlug(String tenantSlug, LocalDate data) {
@@ -36,19 +37,22 @@ public class SlotService {
         OffsetDateTime fim = data.plusDays(1).atStartOfDay(ZONE_ID).toOffsetDateTime();
 
         List<Slot> disponiveis = slotRepository.findDisponiveisComServico(tenant.getId(), SlotStatus.DISPONIVEL, inicio, fim);
-        List<Slot> ocupados = slotRepository.findOcupadosNoIntervalo(tenant.getId(), STATUS_OCUPADOS, inicio, fim);
 
         return disponiveis.stream()
-                .filter(candidato -> ocupados.stream().noneMatch(outro -> seSobrepoe(candidato, outro)))
+                .filter(candidato -> {
+                    List<Slot> ocupados = slotRepository.findOcupadosNoIntervalo(
+                            candidato.getProfissional().getId(), STATUS_OCUPADOS, inicio, fim);
+                    return ocupados.stream().noneMatch(outro -> seSobrepoe(candidato, outro));
+                })
                 .toList();
     }
 
-    /** Agenda do admin (dia ou semana, todos os status) - dataInicio/dataFim sao inclusivos. */
+    /** Agenda do admin (dia ou semana, todos os status) - dataInicio/dataFim sao inclusivos. profissionalId e opcional. */
     @Transactional(readOnly = true)
-    public List<Slot> listarAgendaPorTenant(Long tenantId, LocalDate dataInicio, LocalDate dataFim) {
+    public List<Slot> listarAgendaPorTenant(Long tenantId, Long profissionalId, LocalDate dataInicio, LocalDate dataFim) {
         OffsetDateTime inicio = dataInicio.atStartOfDay(ZONE_ID).toOffsetDateTime();
         OffsetDateTime fim = dataFim.plusDays(1).atStartOfDay(ZONE_ID).toOffsetDateTime();
-        return slotRepository.findAgendaComServico(tenantId, inicio, fim);
+        return slotRepository.findAgendaComServico(tenantId, profissionalId, inicio, fim);
     }
 
     /**
@@ -68,7 +72,7 @@ public class SlotService {
         OffsetDateTime inicioDoDia = slot.getDataHora().toLocalDate().atStartOfDay(ZONE_ID).toOffsetDateTime();
         OffsetDateTime fimDoDia = inicioDoDia.plusDays(1);
         List<Slot> ocupados = slotRepository.findOcupadosNoIntervalo(
-                slot.getTenant().getId(), STATUS_OCUPADOS, inicioDoDia, fimDoDia);
+                slot.getProfissional().getId(), STATUS_OCUPADOS, inicioDoDia, fimDoDia);
 
         boolean conflito = ocupados.stream().anyMatch(outro -> seSobrepoe(slot, outro));
         if (conflito) {

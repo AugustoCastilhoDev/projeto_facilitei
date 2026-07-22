@@ -6,6 +6,19 @@
 
   <input type="date" class="campo-data" [value]="data()" (change)="onDataChange($event)" />
 
+  <mat-form-field appearance="outline" class="filtro-profissional">
+    <mat-label>Profissional</mat-label>
+    <mat-select
+      [value]="filtroProfissionalId()"
+      (selectionChange)="alterarFiltroProfissional($event.value)"
+    >
+      <mat-option [value]="null">Todos</mat-option>
+      @for (profissional of profissionais(); track profissional.id) {
+        <mat-option [value]="profissional.id">{{ profissional.nome }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
   <span class="spacer"></span>
 
   <button mat-flat-button color="primary" (click)="abrirGerarSlots()">
@@ -29,6 +42,7 @@
           <tr>
             <th>Horario</th>
             <th>Servico</th>
+            <th>Profissional</th>
             <th>Status</th>
           </tr>
         </thead>
@@ -37,6 +51,7 @@
             <tr>
               <td>{{ horaDoSlot(slot) }}</td>
               <td>{{ slot.serviceNome }}</td>
+              <td>{{ slot.profissionalNome }}</td>
               <td>
                 <span class="status-chip" [class]="'status-' + slot.status.toLowerCase()">{{ slot.status }}</span>
               </td>

@@ -37,13 +37,41 @@
         </mat-card>
       }
 
-      @case ('horarios') {
+      @case ('profissionais') {
         <mat-card>
           <mat-card-header>
             <button mat-icon-button (click)="voltarParaServicos()" aria-label="Voltar">
               <mat-icon>arrow_back</mat-icon>
             </button>
-            <mat-card-title>{{ servicoSelecionado()?.nome }}</mat-card-title>
+            <mat-card-title>Escolha um profissional</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            @if (carregandoProfissionais()) {
+              <div class="carregando">
+                <mat-spinner diameter="32" />
+              </div>
+            } @else if (profissionais().length === 0) {
+              <p class="vazio">Nenhum profissional disponivel para este servico no momento.</p>
+            } @else {
+              <div class="lista-servicos">
+                @for (profissional of profissionais(); track profissional.id) {
+                  <button type="button" class="item-servico" (click)="selecionarProfissional(profissional)">
+                    <span class="nome">{{ profissional.nome }}</span>
+                  </button>
+                }
+              </div>
+            }
+          </mat-card-content>
+        </mat-card>
+      }
+
+      @case ('horarios') {
+        <mat-card>
+          <mat-card-header>
+            <button mat-icon-button (click)="voltarParaProfissionais()" aria-label="Voltar">
+              <mat-icon>arrow_back</mat-icon>
+            </button>
+            <mat-card-title>{{ servicoSelecionado()?.nome }} &middot; {{ profissionalSelecionado()?.nome }}</mat-card-title>
           </mat-card-header>
           <mat-card-content>
             <input type="date" class="campo-data" [value]="data()" (change)="onDataChange($event)" />
@@ -76,7 +104,10 @@
             <mat-card-title>Seus dados</mat-card-title>
           </mat-card-header>
           <mat-card-content>
-            <p class="resumo">{{ servicoSelecionado()?.nome }} &middot; {{ horaDoSlot(slotSelecionado()!) }}</p>
+            <p class="resumo">
+              {{ servicoSelecionado()?.nome }} &middot; {{ profissionalSelecionado()?.nome }} &middot;
+              {{ horaDoSlot(slotSelecionado()!) }}
+            </p>
 
             <form [formGroup]="form" (ngSubmit)="confirmarReserva()">
               <mat-form-field appearance="outline" class="campo">

@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.castilhodigital.facilitei.catalog.ServiceOffering;
+import com.castilhodigital.facilitei.professional.Profissional;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
@@ -34,8 +35,13 @@ class PublicSlotControllerTest {
         service.setNome("Corte");
         ReflectionTestUtils.setField(service, "id", 3L);
 
+        Profissional profissional = new Profissional();
+        profissional.setNome("Joana");
+        ReflectionTestUtils.setField(profissional, "id", 6L);
+
         Slot slot = new Slot();
         slot.setService(service);
+        slot.setProfissional(profissional);
         slot.setDataHora(LocalDate.now().plusDays(1).atTime(LocalTime.of(9, 0)).atZone(ZoneId.of("America/Sao_Paulo")).toOffsetDateTime());
         slot.setStatus(SlotStatus.DISPONIVEL);
         ReflectionTestUtils.setField(slot, "id", 7L);

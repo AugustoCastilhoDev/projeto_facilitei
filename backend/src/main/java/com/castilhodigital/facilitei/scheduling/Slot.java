@@ -2,6 +2,7 @@ package com.castilhodigital.facilitei.scheduling;
 
 import com.castilhodigital.facilitei.catalog.ServiceOffering;
 import com.castilhodigital.facilitei.common.BaseEntity;
+import com.castilhodigital.facilitei.professional.Profissional;
 import com.castilhodigital.facilitei.tenant.Tenant;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -39,6 +40,11 @@ public class Slot extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "service_id", nullable = false)
     private ServiceOffering service;
+
+    /** Profissional dono deste horario - a checagem de sobreposicao (SlotService) e escopada por ele, nao pelo tenant. */
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "profissional_id", nullable = false)
+    private Profissional profissional;
 
     @Column(name = "data_hora", nullable = false)
     private OffsetDateTime dataHora;

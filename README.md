@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/AugustoCastilhoDev/projeto_facilitei/actions/workflows/ci.yml/badge.svg)](https://github.com/AugustoCastilhoDev/projeto_facilitei/actions/workflows/ci.yml)
 
-SaaS de agendamento com sinal via Pix para pequenos negócios de serviço (barbearias, salões, esteticistas etc.). Cada negócio (tenant) cadastra seus serviços, gera horários a partir do expediente configurado, e recebe agendamentos através de uma página pública própria — o cliente final escolhe serviço e horário, paga o sinal via Pix (Asaas) e a reserva é confirmada automaticamente por webhook.
+SaaS de agendamento com sinal via Pix para pequenos negócios de serviço (barbearias, salões, esteticistas etc.). Cada negócio (tenant) cadastra seus serviços e profissionais — cada profissional com seu próprio expediente e os serviços que realiza —, gera horários a partir dessa combinação, e recebe agendamentos através de uma página pública própria — o cliente final escolhe serviço, profissional e horário, paga o sinal via Pix (Asaas) e a reserva é confirmada automaticamente por webhook.
 
 Projeto construído como portfólio técnico, documentando as decisões de arquitetura e os problemas reais encontrados (e corrigidos) ao longo do desenvolvimento.
 
@@ -28,7 +28,8 @@ backend/src/main/java/com/castilhodigital/facilitei/
 ├── tenant/         # Tenant (negócio), endpoints públicos de info do tenant
 ├── user/           # Usuário admin (role ADMIN)
 ├── catalog/        # Serviços oferecidos (ServiceOffering) — CRUD admin + listagem pública
-├── scheduling/     # Slot, geração automática de horários, agenda admin/pública
+├── professional/   # Profissional (expediente próprio, N:N com serviços) — CRUD admin + listagem pública
+├── scheduling/     # Slot (por profissional), geração automática de horários, agenda admin/pública
 ├── booking/        # Reserva do cliente final, checkout, expiração automática
 ├── payment/        # Porta PaymentGatewayService + implementação payment/asaas
 ├── notification/   # Porta NotificationService + implementação console (mock)
@@ -47,8 +48,8 @@ frontend/src/app/
 │   ├── models/         # Interfaces TypeScript espelhando os DTOs do backend
 │   └── services/       # HttpClient wrappers (um por domínio: auth, service-offering, slot, public-booking)
 └── features/
-    ├── auth/            # Login
-    ├── admin/           # Shell (Dashboard) + Agenda + Serviços (lazy-loaded)
+    ├── auth/            # Login + registro (onboarding self-service)
+    ├── admin/           # Shell (Dashboard) + Agenda + Serviços + Profissionais + Pagamentos (lazy-loaded)
     └── public-booking/  # Página pública de agendamento (lazy-loaded)
 ```
 
@@ -74,15 +75,17 @@ Ver o tutorial completo (para o dono do negócio) em [`docs/configurar-pagamento
 ```
 tenants (negócio) ──< users (admin, role fixa)
         │
-        ├──< services (nome, duração, preço, % sinal, ativo)
-        │        │
-        │        └──< slots (data/hora concreta, status: DISPONIVEL/RESERVADO/CONFIRMADO)
+        ├──< services (nome, duração, preço, % sinal, ativo) ──┐
+        │                                                      │
+        ├──< profissionais (nome, expediente próprio, ativo) ──┤ N:N (profissional_servicos)
+        │        │                                             │
+        │        └──< slots (data/hora, serviço, status) ──────┘
         │                 │
         │                 └── 1:1 bookings (cliente final, status pagamento, dados Pix)
 ```
 
-- Um **slot** pertence a um único serviço e é gerado automaticamente (`SlotGenerationService`) a partir do expediente do tenant + duração do serviço.
-- O negócio é modelado como **um único profissional/cadeira**: dois serviços diferentes não podem ter reservas em horários que se sobrepõem (ver decisão técnica abaixo).
+- Um **slot** pertence a um profissional e a um serviço, e é gerado automaticamente (`SlotGenerationService`) a partir do expediente do profissional + duração do serviço escolhido.
+- Cada **profissional** tem seu próprio expediente (horário de abertura/fechamento) e uma lista própria de serviços que realiza (`profissional_servicos`) — dois negócios diferentes podem ter profissionais com turnos completamente distintos. Dois serviços do **mesmo** profissional não podem ter reservas em horários que se sobrepõem; profissionais diferentes têm agendas independentes (ver decisão técnica abaixo).
 - `bookings.status_pagamento` cobre `PENDENTE`, `PAGO`, `SEM_SINAL` (serviço sem sinal, pagamento no local), `EXPIRADO` e `CANCELADO`.
 - `tenants` guarda `asaas_api_key` e `asaas_webhook_token` (ambos cifrados) — a própria credencial Asaas do tenant, não da plataforma. Ver "Recebimento de pagamentos (BYOPP)" abaixo.
 
@@ -92,19 +95,23 @@ Pontos que valem a pena mencionar numa entrevista — cada um resolveu um proble
 
 - **JWT nativo do Spring Security (OAuth2 Resource Server) em vez de uma lib como jjwt.** No momento do desenvolvimento, jjwt ainda não tinha compatibilidade confirmada com Jackson 3/Spring Framework 7 (trazidos pelo Boot 4.1) — o suporte nativo evita esse risco de dependência transitiva quebrada.
 - **`open-in-view: false` + queries `JOIN FETCH` explícitas.** Descoberto via teste manual real: acessar `slot.getService().getNome()` fora da transação estourava `LazyInitializationException`. A solução não foi religar o `open-in-view` (esconde o problema, degrada performance em produção), mas escrever os repositórios com fetch explícito onde o dado é realmente necessário.
-- **Conflito de horário entre serviços diferentes por sobreposição de intervalo, não por igualdade exata.** Como o negócio é uma cadeira/profissional só, reservar "Corte" (30min) não pode deixar "Coloração" (90min) disponível num horário que se sobreponha, mesmo que não comecem exatamente no mesmo minuto. A checagem roda em dois pontos: na listagem pública (esconde da vitrine) e na criação da reserva (bloqueio real, defesa contra corrida entre requisições concorrentes).
+- **Conflito de horário por sobreposição de intervalo, não por igualdade exata, escopado por profissional.** Reservar "Corte" (30min) não pode deixar "Coloração" (90min) disponível num horário que se sobreponha, mesmo que não comecem exatamente no mesmo minuto — mas só quando é o **mesmo profissional**: como cada `Slot` carrega uma FK própria para `Profissional`, a query de sobreposição (`findOcupadosNoIntervalo`) filtra por `profissional.id`, não mais por `tenant.id` como na versão de "profissional único". A checagem roda em dois pontos: na listagem pública (esconde da vitrine) e na criação da reserva (bloqueio real, defesa contra corrida entre requisições concorrentes).
+- **Serviço vinculado a profissionais específicos (N:N), não "qualquer profissional faz qualquer serviço".** Decisão consciente para refletir o caso real (nem todo profissional de uma barbearia faz coloração, por exemplo) — custou uma tabela de junção (`profissional_servicos`) e um filtro a mais no fluxo público (`GET /public/tenants/{slug}/profissionais?serviceId=`), mas evita a UX confusa de oferecer um profissional que não presta aquele serviço.
 - **Expiração de reserva pendente: dois mecanismos complementares.** O webhook `PAYMENT_OVERDUE` da Asaas usa `dueDate`, que é só uma *data* — não tem precisão de horário. Uma reserva feita hoje às 14h para um horário daqui a pouco só venceria por lá "amanhã", muito depois do compromisso já ter passado. Por isso existe também um `@Scheduled` (`BookingExpirationScheduler`, a cada 5 minutos) que expira reservas pendentes cujo horário do slot esteja a 1h de distância ou menos — validado simulando o cenário real (booking com slot no passado, aguardando o scheduler rodar de fato).
 - **QR Code Pix não é persistido, mas é re-buscável.** A imagem do QR Code não fica salva no banco (só o payload "copia e cola" e o id do pagamento), mas a página de pagamento sobrevive a um F5 graças à rota `/agendar/:slug/reserva/:bookingId` + um endpoint que rebusca o QR Code na Asaas enquanto o pagamento estiver pendente.
 - **Sinal zero vira "pagamento no local", não uma cobrança de R$0,00.** A Asaas não aceita cobrança de valor zero. Se `sinalPercentual = 0`, o checkout pula a Asaas inteiramente e confirma a reserva direto (`status_pagamento = SEM_SINAL`).
 - **Webhook da Asaas tem uma "fila de sincronização" própria, separada do cadastro da URL.** Ao testar com um túnel ngrok real, o webhook ficou marcado como "Interrompido" mesmo com a URL e o token corretos — o motivo não é falha de entrega (o log de webhooks da Asaas não registrava nenhuma tentativa), e sim um toggle "Fila de sincronização ativada?" que vem desligado por padrão ao criar o webhook. Eventos são gerados mesmo com a fila pausada, mas só são entregues depois que ela é reativada manualmente no painel.
 - **Chave Asaas por tenant, cifrada via `AttributeConverter`, não manualmente antes de salvar.** `EncryptedStringConverter` cifra/decifra de forma transparente no próprio mapeamento JPA (`@Convert`) — a entidade sempre trabalha com o texto plano em memória, só a coluna no banco fica cifrada. O conversor é registrado como bean Spring (`@Component`), não instanciado via reflection pelo Hibernate, para poder injetar o `TextEncryptor` — o Spring Boot já configura o Hibernate para resolver conversores assim.
 - **Identificar o tenant pelo pagamento antes de autenticar o webhook, não depois.** Com uma chave/token só por conta Asaas (modelo BYOPP), não existe mais um segredo único global para comparar. A solução inverte a ordem: busca a reserva pelo `asaasPaymentId` (globalmente único), pega o tenant dono dela, e só então valida o token contra o segredo daquele tenant específico — descoberto durante a implementação que essa consulta precisa de `JOIN FETCH` explícito (`slot` + `tenant`), porque o controller acessa o tenant fora da transação onde a reserva foi buscada (`LazyInitializationException` real, pego em teste manual, não só em teoria).
+- **O mesmo bug de `LazyInitializationException` reapareceu numa coleção `@ManyToMany` (`Profissional.servicos`).** Ao expor `ProfissionalResponse.from()` (que lê `profissional.getServicos()`) fora da transação, o padrão de fetch explícito precisou ser aplicado de novo — mas dessa vez com um cuidado a mais: os métodos que **filtram** por serviço (`findByTenantIdAndServicosIdAndAtivoTrueOrderByNome`) não podem usar o mesmo `JOIN` tanto para o filtro quanto para o `FETCH` da coleção, senão a coleção carregada fica incompleta (só o item que bateu no filtro). A solução usa um `LEFT JOIN FETCH` sem condição para trazer a coleção inteira, e um `EXISTS` subquery separado só para o filtro. Nenhum dos 4 testes automatizados do `ProfissionalService`/controllers pegou isso (mockam o repositório) — só apareceu ao testar manualmente o CRUD de profissionais na UI, reforçando por que essa etapa nunca é pulada neste projeto.
 
 ## Limitações conhecidas
 
 - **Sem onboarding assistido da conta Asaas do tenant**: o dono do negócio (ou a equipe da Facilitei, ajudando-o) precisa criar a própria conta Asaas e colar a chave manualmente — não há criação automática de subconta nem fluxo OAuth/Connect. Existe um campo `asaas_wallet_id` em `tenants`, ainda não utilizado, reservado para um modelo de split via marketplace avaliado e descartado em favor do BYOPP (ver ROADMAP).
 - **Um único webhook token por tenant, sem rotação**: gerado uma vez na primeira configuração e nunca trocado (mesmo ao atualizar a chave de API) — evita invalidar um webhook já configurado do lado da Asaas, mas também não há como o próprio tenant regenerá-lo pela UI se suspeitar de vazamento.
 - **Um cliente não pode agendar múltiplos serviços numa única reserva/checkout** — decisão consciente de escopo, ver histórico do projeto. O modelo atual é 1 slot = 1 booking.
+- **Expediente do profissional é um único intervalo fixo por dia** (abre/fecha), sem variação por dia da semana nem controle de folgas/férias — gerar horários para um dia específico continua sendo uma ação manual do admin (tela Agenda).
+- **Vincular serviços a um profissional só é possível pela tela "Profissionais"**, não há atalho pela tela "Serviços" para ver/editar quais profissionais realizam aquele serviço.
 - **Webhook validado com túnel público (ngrok) contra a sandbox da Asaas**, incluindo uma reserva real, confirmação de pagamento pelo painel da Asaas e recebimento do evento `PAYMENT_CONFIRMED` pelo backend local — mas ainda não em produção, nem sob carga.
 - **Fuso horário fixo em `America/Sao_Paulo`** — não há suporte a tenants em outros fusos.
 - **CPF/CNPJ é obrigatório no formulário público mesmo quando o serviço não cobra sinal** (a validação está no DTO, não condicionada ao serviço escolhido) — só é estritamente necessário quando uma cobrança Pix de fato será gerada.
@@ -175,6 +182,8 @@ npm start
 - Painel admin: `http://localhost:4200/auth/login` (login com o email/senha cadastrados acima)
 - Página pública de agendamento: `http://localhost:4200/agendar/barbearia-teste`
 
+O registro cria automaticamente um profissional padrão ("Profissional 1") com o expediente informado no formulário, mas sem nenhum serviço vinculado ainda — depois de cadastrar um serviço na aba "Serviços", vincule-o a esse profissional (ou crie outros) na aba "Profissionais" antes de gerar horários.
+
 O dev server do Angular já tem um proxy configurado (`proxy.conf.json`) que encaminha `/api` para `http://localhost:8080` — não precisa configurar CORS.
 
 ## Testes
@@ -187,7 +196,7 @@ cd backend && mvn test
 cd frontend && ng test --watch=false
 ```
 
-66 testes no backend e 10 suítes no frontend, cobrindo desde regras de negócio isoladas (cálculo de sinal, conflito de horário, expiração, rate limiting, criptografia de credenciais) até os controllers REST e a integração real com o sandbox da Asaas.
+80 testes no backend e 12 suítes no frontend, cobrindo desde regras de negócio isoladas (cálculo de sinal, conflito de horário por profissional, expiração, rate limiting, criptografia de credenciais) até os controllers REST e a integração real com o sandbox da Asaas.
 
 O GitHub Actions (`.github/workflows/ci.yml`) roda exatamente esses mesmos comandos — `mvn test` + `mvn package` no backend, `ng test` + `ng build` no frontend — a cada push e pull request para a `main`. Nenhum teste depende de banco de dados real (tudo via `@WebMvcTest`/Mockito ou testes puros de unidade), então o job do backend não precisa subir um Postgres.
 

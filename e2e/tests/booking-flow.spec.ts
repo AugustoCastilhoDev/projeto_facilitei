@@ -41,11 +41,33 @@ async function configurarChaveAsaas(page: Page, apiKey: string): Promise<void> {
   await expect(page.getByText('Recebimento configurado')).toBeVisible();
 }
 
+const NOME_PROFISSIONAL = 'Profissional Teste';
+
+/**
+ * Cria um profissional na aba "Profissionais" e vincula o servico informado
+ * a ele - desde o modelo de multiplos profissionais, gerar horarios exige um
+ * profissional que realize aquele servico (ver ProfissionalAdminController).
+ */
+async function cadastrarProfissional(page: Page, nomeServico: string): Promise<void> {
+  await page.getByRole('tab', { name: 'Profissionais' }).click();
+  await page.getByRole('button', { name: 'Novo profissional' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByLabel('Nome').fill(NOME_PROFISSIONAL);
+  await dialog.getByLabel('Abre as').fill('08:00');
+  await dialog.getByLabel('Fecha as').fill('20:00');
+  await dialog.getByLabel('Servicos que realiza').click();
+  await page.getByRole('option', { name: nomeServico }).click();
+  await page.keyboard.press('Escape');
+  await dialog.getByRole('button', { name: 'Salvar' }).click();
+  await expect(dialog).toHaveCount(0);
+}
+
 /**
  * Cadastra um tenant novo pela UI (onboarding self-service), loga, cria um
- * servico e gera horarios para amanha. Cada teste usa seu proprio tenant
- * (slug/email com timestamp), entao os testes nao interferem entre si e
- * podem rodar quantas vezes forem necessarias sem limpeza manual do banco.
+ * servico, cadastra um profissional vinculado a ele e gera horarios para
+ * amanha. Cada teste usa seu proprio tenant (slug/email com timestamp),
+ * entao os testes nao interferem entre si e podem rodar quantas vezes forem
+ * necessarias sem limpeza manual do banco.
  */
 async function cadastrarTenantComServico(
   page: Page,
@@ -82,9 +104,13 @@ async function cadastrarTenantComServico(
   await expect(dialogServico).toHaveCount(0);
   await expect(page.getByText(opcoes.nomeServico)).toBeVisible();
 
+  await cadastrarProfissional(page, opcoes.nomeServico);
+
   await page.getByRole('tab', { name: 'Agenda' }).click();
   await page.getByRole('button', { name: 'Gerar horarios' }).click();
   const dialogSlots = page.getByRole('dialog');
+  await dialogSlots.getByLabel('Profissional').click();
+  await page.getByRole('option', { name: NOME_PROFISSIONAL }).click();
   await dialogSlots.getByLabel('Servico').click();
   await page.getByRole('option', { name: opcoes.nomeServico }).click();
   await dialogSlots.locator('input[type="date"]').fill(dataDeAmanha());
@@ -98,6 +124,7 @@ test('reserva com servico sem sinal e confirmada na hora, sem cobranca Pix', asy
 
   await page.goto(`/agendar/${slug}`);
   await page.getByText('Corte Rapido').click();
+  await page.getByText(NOME_PROFISSIONAL).click();
   await page.locator('.campo-data').fill(dataDeAmanha());
   await page.locator('.item-horario').first().click();
   await page.getByLabel('Nome completo').fill('Cliente E2E');
@@ -121,6 +148,7 @@ test('reserva com sinal exibe cobranca Pix real da Asaas aguardando pagamento', 
 
   await page.goto(`/agendar/${slug}`);
   await page.getByText('Corte Premium').click();
+  await page.getByText(NOME_PROFISSIONAL).click();
   await page.locator('.campo-data').fill(dataDeAmanha());
   await page.locator('.item-horario').first().click();
   await page.getByLabel('Nome completo').fill('Cliente E2E');

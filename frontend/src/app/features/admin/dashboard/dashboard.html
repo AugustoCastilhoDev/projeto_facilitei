@@ -24,6 +24,15 @@
   </a>
   <a
     mat-tab-link
+    routerLink="profissionais"
+    routerLinkActive
+    #profissionaisLink="routerLinkActive"
+    [active]="profissionaisLink.isActive"
+  >
+    Profissionais
+  </a>
+  <a
+    mat-tab-link
     routerLink="pagamentos"
     routerLinkActive
     #pagamentosLink="routerLinkActive"

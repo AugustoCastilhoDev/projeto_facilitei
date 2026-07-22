@@ -3,24 +3,24 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 
-import { GerarSlotsDialog } from './gerar-slots-dialog';
+import { ProfissionalFormDialog } from './profissional-form-dialog';
 
-describe('GerarSlotsDialog', () => {
-  let component: GerarSlotsDialog;
-  let fixture: ComponentFixture<GerarSlotsDialog>;
+describe('ProfissionalFormDialog', () => {
+  let component: ProfissionalFormDialog;
+  let fixture: ComponentFixture<ProfissionalFormDialog>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [GerarSlotsDialog],
+      imports: [ProfissionalFormDialog],
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: MatDialogRef, useValue: { close: () => {} } },
-        { provide: MAT_DIALOG_DATA, useValue: { servicos: [], profissionais: [], dataSelecionada: '2026-07-21' } },
+        { provide: MAT_DIALOG_DATA, useValue: { profissional: null, servicos: [] } },
       ],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(GerarSlotsDialog);
+    fixture = TestBed.createComponent(ProfissionalFormDialog);
     component = fixture.componentInstance;
     await fixture.whenStable();
   });

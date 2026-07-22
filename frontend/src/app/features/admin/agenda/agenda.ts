@@ -2,11 +2,15 @@ import { Component, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatDialog } from '@angular/material/dialog';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { Profissional } from '../../../core/models/profissional.model';
 import { ServiceOffering } from '../../../core/models/service-offering.model';
 import { Slot } from '../../../core/models/slot.model';
+import { ProfissionalService } from '../../../core/services/profissional.service';
 import { ServiceOfferingService } from '../../../core/services/service-offering.service';
 import { SlotService } from '../../../core/services/slot.service';
 import { GerarSlotsDialog } from './gerar-slots-dialog/gerar-slots-dialog';
@@ -73,13 +77,21 @@ function agruparPorDia(slots: Slot[]): GrupoAgenda[] {
 /** Agenda do admin: visao dia/semana de todos os slots (qualquer status) + acao de gerar horarios. */
 @Component({
   selector: 'app-agenda',
-  imports: [MatButtonModule, MatButtonToggleModule, MatIconModule, MatProgressSpinnerModule],
+  imports: [
+    MatButtonModule,
+    MatButtonToggleModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatSelectModule,
+  ],
   templateUrl: './agenda.html',
   styleUrl: './agenda.scss',
 })
 export class Agenda {
   private readonly slotService = inject(SlotService);
   private readonly serviceOfferingService = inject(ServiceOfferingService);
+  private readonly profissionalService = inject(ProfissionalService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
 
@@ -88,15 +100,25 @@ export class Agenda {
   protected readonly carregando = signal(false);
   protected readonly grupos = signal<GrupoAgenda[]>([]);
   protected readonly servicos = signal<ServiceOffering[]>([]);
+  protected readonly profissionais = signal<Profissional[]>([]);
+  protected readonly filtroProfissionalId = signal<number | null>(null);
 
   constructor() {
     // So servicos ativos podem ter novos horarios gerados (ver SlotGenerationService no backend).
     this.serviceOfferingService.listar().subscribe((servicos) => this.servicos.set(servicos.filter((s) => s.ativo)));
+    this.profissionalService.listar().subscribe((profissionais) =>
+      this.profissionais.set(profissionais.filter((p) => p.ativo)),
+    );
     this.carregar();
   }
 
   protected alterarModo(modo: string): void {
     this.modo.set(modo === 'semana' ? 'semana' : 'dia');
+    this.carregar();
+  }
+
+  protected alterarFiltroProfissional(profissionalId: number | null): void {
+    this.filtroProfissionalId.set(profissionalId);
     this.carregar();
   }
 
@@ -115,7 +137,7 @@ export class Agenda {
   protected abrirGerarSlots(): void {
     const ref = this.dialog.open(GerarSlotsDialog, {
       width: '400px',
-      data: { servicos: this.servicos(), dataSelecionada: this.data() },
+      data: { servicos: this.servicos(), profissionais: this.profissionais(), dataSelecionada: this.data() },
     });
 
     ref.afterClosed().subscribe((gerado) => {
@@ -130,7 +152,7 @@ export class Agenda {
     const { inicio, fim } = this.calcularIntervalo();
     this.carregando.set(true);
 
-    this.slotService.listarAgenda(inicio, fim).subscribe({
+    this.slotService.listarAgenda(inicio, fim, this.filtroProfissionalId() ?? undefined).subscribe({
       next: (slots) => {
         this.grupos.set(agruparPorDia(slots));
         this.carregando.set(false);

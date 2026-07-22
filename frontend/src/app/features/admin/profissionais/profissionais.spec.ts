@@ -2,26 +2,25 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { Agenda } from './agenda';
+import { Profissionais } from './profissionais';
 
-describe('Agenda', () => {
-  let component: Agenda;
-  let fixture: ComponentFixture<Agenda>;
+describe('Profissionais', () => {
+  let component: Profissionais;
+  let fixture: ComponentFixture<Profissionais>;
   let httpMock: HttpTestingController;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [Agenda],
+      imports: [Profissionais],
       providers: [provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(Agenda);
+    fixture = TestBed.createComponent(Profissionais);
     component = fixture.componentInstance;
     httpMock = TestBed.inject(HttpTestingController);
 
     httpMock.expectOne((req) => req.url.includes('/services')).flush([]);
     httpMock.expectOne((req) => req.url.includes('/profissionais')).flush([]);
-    httpMock.expectOne((req) => req.url.includes('/slots')).flush([]);
 
     await fixture.whenStable();
   });

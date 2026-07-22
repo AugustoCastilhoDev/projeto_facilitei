@@ -3,14 +3,29 @@
 <form [formGroup]="form" (ngSubmit)="gerar()">
   <mat-dialog-content>
     <mat-form-field appearance="outline" class="campo">
+      <mat-label>Profissional</mat-label>
+      <mat-select formControlName="profissionalId">
+        @for (profissional of data.profissionais; track profissional.id) {
+          <mat-option [value]="profissional.id">{{ profissional.nome }}</mat-option>
+        }
+      </mat-select>
+      @if (form.controls.profissionalId.hasError('required') && form.controls.profissionalId.touched) {
+        <mat-error>Selecione um profissional.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="campo">
       <mat-label>Servico</mat-label>
       <mat-select formControlName="serviceId">
-        @for (servico of data.servicos; track servico.id) {
+        @for (servico of servicosDoProfissional(); track servico.id) {
           <mat-option [value]="servico.id">{{ servico.nome }}</mat-option>
         }
       </mat-select>
       @if (form.controls.serviceId.hasError('required') && form.controls.serviceId.touched) {
         <mat-error>Selecione um servico.</mat-error>
+      }
+      @if (form.controls.profissionalId.value && servicosDoProfissional().length === 0) {
+        <mat-hint>Este profissional ainda nao realiza nenhum servico.</mat-hint>
       }
     </mat-form-field>
 

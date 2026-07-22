@@ -13,12 +13,13 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { Subscription, interval, switchMap } from 'rxjs';
 import { Booking, CriarBookingRequest } from '../../../core/models/booking.model';
+import { Profissional } from '../../../core/models/profissional.model';
 import { ServiceOffering } from '../../../core/models/service-offering.model';
 import { Slot } from '../../../core/models/slot.model';
 import { PublicTenant } from '../../../core/models/tenant.model';
 import { PublicBookingService } from '../../../core/services/public-booking.service';
 
-type Etapa = 'servicos' | 'horarios' | 'dados' | 'pagamento';
+type Etapa = 'servicos' | 'profissionais' | 'horarios' | 'dados' | 'pagamento';
 
 function hojeIso(): string {
   const hoje = new Date();
@@ -74,6 +75,10 @@ export class BookingPage implements OnInit, OnDestroy {
   protected readonly etapa = signal<Etapa>('servicos');
   protected readonly servicoSelecionado = signal<ServiceOffering | null>(null);
 
+  protected readonly carregandoProfissionais = signal(false);
+  protected readonly profissionais = signal<Profissional[]>([]);
+  protected readonly profissionalSelecionado = signal<Profissional | null>(null);
+
   protected readonly data = signal(hojeIso());
   protected readonly carregandoSlots = signal(false);
   protected readonly slotsDoServico = signal<Slot[]>([]);
@@ -115,6 +120,12 @@ export class BookingPage implements OnInit, OnDestroy {
 
   protected selecionarServico(servico: ServiceOffering): void {
     this.servicoSelecionado.set(servico);
+    this.etapa.set('profissionais');
+    this.carregarProfissionais();
+  }
+
+  protected selecionarProfissional(profissional: Profissional): void {
+    this.profissionalSelecionado.set(profissional);
     this.etapa.set('horarios');
     this.carregarSlots();
   }
@@ -135,6 +146,13 @@ export class BookingPage implements OnInit, OnDestroy {
   protected voltarParaServicos(): void {
     this.etapa.set('servicos');
     this.servicoSelecionado.set(null);
+    this.profissionalSelecionado.set(null);
+    this.slotSelecionado.set(null);
+  }
+
+  protected voltarParaProfissionais(): void {
+    this.etapa.set('profissionais');
+    this.profissionalSelecionado.set(null);
     this.slotSelecionado.set(null);
   }
 
@@ -243,16 +261,38 @@ export class BookingPage implements OnInit, OnDestroy {
     });
   }
 
-  private carregarSlots(): void {
+  private carregarProfissionais(): void {
     const servico = this.servicoSelecionado();
     if (!servico) {
+      return;
+    }
+
+    this.carregandoProfissionais.set(true);
+    this.publicBookingService.listarProfissionais(this.slug(), servico.id).subscribe({
+      next: (profissionais) => {
+        this.profissionais.set(profissionais);
+        this.carregandoProfissionais.set(false);
+      },
+      error: () => {
+        this.profissionais.set([]);
+        this.carregandoProfissionais.set(false);
+      },
+    });
+  }
+
+  private carregarSlots(): void {
+    const servico = this.servicoSelecionado();
+    const profissional = this.profissionalSelecionado();
+    if (!servico || !profissional) {
       return;
     }
 
     this.carregandoSlots.set(true);
     this.publicBookingService.listarSlotsDisponiveis(this.slug(), this.data()).subscribe({
       next: (slots) => {
-        this.slotsDoServico.set(slots.filter((slot) => slot.serviceId === servico.id));
+        this.slotsDoServico.set(
+          slots.filter((slot) => slot.serviceId === servico.id && slot.profissionalId === profissional.id),
+        );
         this.carregandoSlots.set(false);
       },
       error: () => {
