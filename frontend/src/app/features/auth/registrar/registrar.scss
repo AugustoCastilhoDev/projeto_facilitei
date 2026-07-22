@@ -1,4 +1,4 @@
-.login-page {
+.registrar-page {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -6,13 +6,22 @@
   padding: 16px;
 }
 
-.login-card {
+.registrar-card {
   width: 100%;
-  max-width: 400px;
+  max-width: 440px;
 }
 
 .campo {
   width: 100%;
+}
+
+.linha-horarios {
+  display: flex;
+  gap: 12px;
+
+  .campo {
+    flex: 1;
+  }
 }
 
 .erro {
@@ -21,11 +30,12 @@
   font-size: 0.875rem;
 }
 
-.botao-entrar {
+.botao-cadastrar {
   width: 100%;
+  margin-top: 8px;
 }
 
-.link-registrar {
+.link-login {
   display: block;
   text-align: center;
   margin-top: 16px;

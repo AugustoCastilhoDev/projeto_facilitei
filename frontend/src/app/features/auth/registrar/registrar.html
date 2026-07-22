@@ -1,0 +1,92 @@
+<div class="registrar-page">
+  <mat-card class="registrar-card">
+    <mat-card-header>
+      <mat-card-title>Cadastrar meu negocio</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="cadastrar()">
+        <mat-form-field appearance="outline" class="campo">
+          <mat-label>Nome do negocio</mat-label>
+          <input matInput formControlName="nomeNegocio" placeholder="Ex.: Barbearia do Ze" />
+          @if (form.controls.nomeNegocio.hasError('required') && form.controls.nomeNegocio.touched) {
+            <mat-error>Nome do negocio e obrigatorio.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="campo">
+          <mat-label>Link de agendamento (slug)</mat-label>
+          <input matInput formControlName="slug" placeholder="barbearia-do-ze" />
+          <mat-hint>facilitei.com.br/agendar/{{ form.controls.slug.value || '...' }}</mat-hint>
+          @if (form.controls.slug.hasError('required') && form.controls.slug.touched) {
+            <mat-error>Link e obrigatorio.</mat-error>
+          } @else if (form.controls.slug.hasError('pattern') && form.controls.slug.touched) {
+            <mat-error>Use apenas letras minusculas, numeros e hifens.</mat-error>
+          } @else if (form.controls.slug.hasError('servidor')) {
+            <mat-error>{{ form.controls.slug.getError('servidor') }}</mat-error>
+          }
+        </mat-form-field>
+
+        <div class="linha-horarios">
+          <mat-form-field appearance="outline" class="campo">
+            <mat-label>Abre as</mat-label>
+            <input matInput type="time" formControlName="horarioAbertura" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="campo">
+            <mat-label>Fecha as</mat-label>
+            <input matInput type="time" formControlName="horarioFechamento" />
+          </mat-form-field>
+        </div>
+        @if (form.hasError('horarioInvalido')) {
+          <p class="erro">Horario de abertura deve ser antes do horario de fechamento.</p>
+        }
+
+        <mat-form-field appearance="outline" class="campo">
+          <mat-label>Seu email (login do painel)</mat-label>
+          <input matInput type="email" formControlName="emailAdmin" autocomplete="username" />
+          @if (form.controls.emailAdmin.hasError('required') && form.controls.emailAdmin.touched) {
+            <mat-error>Email e obrigatorio.</mat-error>
+          } @else if (form.controls.emailAdmin.hasError('email') && form.controls.emailAdmin.touched) {
+            <mat-error>Email invalido.</mat-error>
+          } @else if (form.controls.emailAdmin.hasError('servidor')) {
+            <mat-error>{{ form.controls.emailAdmin.getError('servidor') }}</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="campo">
+          <mat-label>Senha</mat-label>
+          <input matInput type="password" formControlName="senhaAdmin" autocomplete="new-password" />
+          @if (form.controls.senhaAdmin.hasError('required') && form.controls.senhaAdmin.touched) {
+            <mat-error>Senha e obrigatoria.</mat-error>
+          } @else if (form.controls.senhaAdmin.hasError('minlength') && form.controls.senhaAdmin.touched) {
+            <mat-error>Senha deve ter no minimo 8 caracteres.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="campo">
+          <mat-label>Confirmar senha</mat-label>
+          <input matInput type="password" formControlName="confirmarSenha" autocomplete="new-password" />
+          @if (form.controls.confirmarSenha.hasError('required') && form.controls.confirmarSenha.touched) {
+            <mat-error>Confirmacao de senha e obrigatoria.</mat-error>
+          } @else if (form.hasError('senhasDiferentes') && form.controls.confirmarSenha.touched) {
+            <mat-error>As senhas nao coincidem.</mat-error>
+          }
+        </mat-form-field>
+
+        @if (erro()) {
+          <p class="erro">{{ erro() }}</p>
+        }
+
+        <button mat-flat-button color="primary" type="submit" class="botao-cadastrar" [disabled]="carregando()">
+          @if (carregando()) {
+            <mat-spinner diameter="20" />
+          } @else {
+            Criar minha conta
+          }
+        </button>
+
+        <a class="link-login" routerLink="/auth/login">Ja tenho uma conta</a>
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

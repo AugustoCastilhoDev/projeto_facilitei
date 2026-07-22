@@ -31,7 +31,7 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 ## Fase 1 — Fechar os bloqueadores *(~4–6 semanas)*
 
 ### Produto
-- [ ] Onboarding self-service — formulário público de cadastro de negócio (hoje só existe via curl)
+- [x] Onboarding self-service — formulário público de cadastro de negócio (hoje só existe via curl)
 
 ### Infraestrutura
 - [ ] Deploy em produção: Postgres gerenciado com backup, domínio, HTTPS
