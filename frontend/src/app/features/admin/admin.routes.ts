@@ -15,6 +15,10 @@ export const ADMIN_ROUTES: Routes = [
       },
       { path: 'pagamentos', loadComponent: () => import('./pagamentos/pagamentos').then((m) => m.Pagamentos) },
       { path: 'relatorios', loadComponent: () => import('./relatorios/relatorios').then((m) => m.Relatorios) },
+      {
+        path: 'assinatura',
+        loadComponent: () => import('./assinatura/assinatura').then((m) => m.AssinaturaPage),
+      },
     ],
   },
 ];

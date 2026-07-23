@@ -30,7 +30,7 @@ public class RegistrationService {
 
     @Transactional
     public RegistrarTenantResponse registrarTenantEAdmin(RegistrarTenantRequest request) {
-        Tenant tenant = tenantService.registrar(request.nomeNegocio(), request.slug());
+        Tenant tenant = tenantService.registrar(request.nomeNegocio(), request.slug(), request.cpfCnpj(), request.plano());
 
         User admin = userService.registrarAdmin(tenant, request.emailAdmin(), request.senhaAdmin());
 

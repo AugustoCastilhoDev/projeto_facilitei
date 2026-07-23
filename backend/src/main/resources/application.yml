@@ -37,11 +37,15 @@ facilitei:
     # (docs.asaas.com) - nao confundir com dominios antigos/de terceiros que
     # aparecem em buscas (ex.: sandbox.asaas.com/api/v3, que e outra API).
     base-url: ${ASAAS_BASE_URL:https://api-sandbox.asaas.com/v3}
-    # Chave da PROPRIA plataforma - reservada para uma cobranca futura ainda
-    # nao implementada (a assinatura mensal do proprio SaaS). A cobranca do
-    # sinal do cliente final usa a chave de cada tenant (Tenant.asaasApiKey),
-    # nao esta aqui - ver modelo BYOPP no README/ROADMAP.
+    # Chave da PROPRIA plataforma, usada para cobrar a assinatura mensal de
+    # cada tenant (ver pacote billing) - a cobranca do sinal do cliente final
+    # usa a chave de cada tenant (Tenant.asaasApiKey), nao esta aqui - ver
+    # modelo BYOPP no README/ROADMAP.
     api-key: ${ASAAS_API_KEY:}
+    # Token unico de plataforma que autentica o webhook da assinatura
+    # (/api/webhooks/asaas-assinatura) - diferente do token por-tenant do
+    # BYOPP, porque so existe UMA conta Asaas da propria plataforma.
+    webhook-token: ${ASAAS_SAAS_WEBHOOK_TOKEN:}
 
   notification:
     # "console" (default, so loga) ou "myzap" (envia WhatsApp de verdade

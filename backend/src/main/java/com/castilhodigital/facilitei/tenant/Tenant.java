@@ -1,11 +1,16 @@
 package com.castilhodigital.facilitei.tenant;
 
+import com.castilhodigital.facilitei.billing.AssinaturaStatus;
+import com.castilhodigital.facilitei.billing.Plano;
 import com.castilhodigital.facilitei.common.BaseEntity;
 import com.castilhodigital.facilitei.common.crypto.EncryptedStringConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
+import java.time.LocalDate;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -58,5 +63,29 @@ public class Tenant extends BaseEntity {
     @Convert(converter = EncryptedStringConverter.class)
     @Column(name = "asaas_webhook_token", columnDefinition = "TEXT")
     private String asaasWebhookToken;
+
+    /** CPF/CNPJ do negocio, usado para gerar a cobranca Pix da assinatura (a Asaas exige um cpfCnpj por customer). */
+    @Column(name = "cpf_cnpj", length = 20)
+    private String cpfCnpj;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Plano plano = Plano.BASICO;
+
+    /**
+     * Status da assinatura do tenant com a PROPRIA plataforma (ver pacote
+     * billing) - nao confundir com o pagamento do sinal (BYOPP). Tenants
+     * criados antes desta feature entram como ATIVA (grandfathered, ver
+     * migration V11) para nao bloquear uso ja existente retroativamente.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "assinatura_status", nullable = false, length = 20)
+    private AssinaturaStatus assinaturaStatus = AssinaturaStatus.ATIVA;
+
+    @Column(name = "trial_ate")
+    private LocalDate trialAte;
+
+    @Column(name = "proxima_cobranca_em")
+    private LocalDate proximaCobrancaEm;
 
 }

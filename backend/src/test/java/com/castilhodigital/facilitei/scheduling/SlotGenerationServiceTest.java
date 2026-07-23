@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
+import com.castilhodigital.facilitei.billing.AssinaturaGuard;
 import com.castilhodigital.facilitei.catalog.ServiceOffering;
 import com.castilhodigital.facilitei.catalog.ServiceOfferingService;
 import com.castilhodigital.facilitei.common.exception.RegraDeNegocioException;
@@ -32,11 +33,14 @@ class SlotGenerationServiceTest {
     @Mock
     private SlotRepository slotRepository;
 
+    @Mock
+    private AssinaturaGuard assinaturaGuard;
+
     private SlotGenerationService slotGenerationService;
 
     @BeforeEach
     void setUp() {
-        slotGenerationService = new SlotGenerationService(serviceOfferingService, profissionalService, slotRepository);
+        slotGenerationService = new SlotGenerationService(serviceOfferingService, profissionalService, slotRepository, assinaturaGuard);
     }
 
     private ServiceOffering servico(Tenant tenant, boolean ativo) {
@@ -56,6 +60,20 @@ class SlotGenerationServiceTest {
         profissional.setServicos(servicos);
         ReflectionTestUtils.setField(profissional, "id", 5L);
         return profissional;
+    }
+
+    @Test
+    void gerarSlotsComAssinaturaBloqueadaLancaExcecao() {
+        Tenant tenant = new Tenant();
+        ServiceOffering service = servico(tenant, true);
+
+        when(serviceOfferingService.buscarPorIdETenant(1L, 9L)).thenReturn(service);
+        org.mockito.Mockito.doThrow(new RegraDeNegocioException("Assinatura cancelada - regularize."))
+                .when(assinaturaGuard).verificarUsoLiberado(tenant);
+
+        assertThatThrownBy(() -> slotGenerationService.gerarSlotsParaData(1L, 5L, 9L, LocalDate.of(2026, 7, 22)))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("Assinatura");
     }
 
     @Test

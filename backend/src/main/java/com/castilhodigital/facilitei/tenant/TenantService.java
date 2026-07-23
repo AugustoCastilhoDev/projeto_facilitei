@@ -1,7 +1,11 @@
 package com.castilhodigital.facilitei.tenant;
 
+import com.castilhodigital.facilitei.billing.AssinaturaStatus;
+import com.castilhodigital.facilitei.billing.Plano;
 import com.castilhodigital.facilitei.common.exception.EntidadeNaoEncontradaException;
 import com.castilhodigital.facilitei.common.exception.RegraDeNegocioException;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -11,10 +15,13 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class TenantService {
 
+    private static final ZoneId ZONE_ID = ZoneId.of("America/Sao_Paulo");
+    private static final int DIAS_DE_TRIAL = 30;
+
     private final TenantRepository tenantRepository;
 
     @Transactional
-    public Tenant registrar(String nome, String slug) {
+    public Tenant registrar(String nome, String slug, String cpfCnpj, Plano plano) {
         if (tenantRepository.existsBySlug(slug)) {
             throw new RegraDeNegocioException("Ja existe um tenant com o slug '" + slug + "'.");
         }
@@ -22,6 +29,10 @@ public class TenantService {
         Tenant tenant = new Tenant();
         tenant.setNome(nome);
         tenant.setSlug(slug);
+        tenant.setCpfCnpj(cpfCnpj);
+        tenant.setPlano(plano);
+        tenant.setAssinaturaStatus(AssinaturaStatus.TRIAL);
+        tenant.setTrialAte(LocalDate.now(ZONE_ID).plusDays(DIAS_DE_TRIAL));
         return tenantRepository.save(tenant);
     }
 

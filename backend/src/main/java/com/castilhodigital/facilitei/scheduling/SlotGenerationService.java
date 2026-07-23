@@ -1,5 +1,6 @@
 package com.castilhodigital.facilitei.scheduling;
 
+import com.castilhodigital.facilitei.billing.AssinaturaGuard;
 import com.castilhodigital.facilitei.catalog.ServiceOffering;
 import com.castilhodigital.facilitei.catalog.ServiceOfferingService;
 import com.castilhodigital.facilitei.common.exception.RegraDeNegocioException;
@@ -36,10 +37,12 @@ public class SlotGenerationService {
     private final ServiceOfferingService serviceOfferingService;
     private final ProfissionalService profissionalService;
     private final SlotRepository slotRepository;
+    private final AssinaturaGuard assinaturaGuard;
 
     @Transactional
     public List<Slot> gerarSlotsParaData(Long tenantId, Long profissionalId, Long serviceId, LocalDate data) {
         ServiceOffering service = serviceOfferingService.buscarPorIdETenant(tenantId, serviceId);
+        assinaturaGuard.verificarUsoLiberado(service.getTenant());
         if (!service.isAtivo()) {
             throw new RegraDeNegocioException("Nao e possivel gerar horarios para um servico desativado.");
         }

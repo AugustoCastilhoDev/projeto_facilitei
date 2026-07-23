@@ -49,6 +49,15 @@
   >
     Relatorios
   </a>
+  <a
+    mat-tab-link
+    routerLink="assinatura"
+    routerLinkActive
+    #assinaturaLink="routerLinkActive"
+    [active]="assinaturaLink.isActive"
+  >
+    Assinatura
+  </a>
 </nav>
 
 <mat-tab-nav-panel #painel class="dashboard-content">

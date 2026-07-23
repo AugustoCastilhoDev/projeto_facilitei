@@ -12,6 +12,8 @@ export interface RegistrarTenantRequest {
   horarioFechamento: string;
   emailAdmin: string;
   senhaAdmin: string;
+  cpfCnpj: string;
+  plano: string;
 }
 
 export interface RegistrarTenantResponse {

@@ -1,0 +1,77 @@
+@if (carregando()) {
+  <div class="carregando">
+    <mat-spinner diameter="32" />
+  </div>
+} @else if (assinatura(); as dados) {
+  <mat-card class="card-status">
+    <mat-card-content>
+      <div class="linha-status">
+        <span
+          class="status-chip"
+          [class.status-trial]="dados.status === 'TRIAL'"
+          [class.status-ativo]="dados.status === 'ATIVA'"
+          [class.status-inadimplente]="dados.status === 'INADIMPLENTE'"
+          [class.status-cancelada]="dados.status === 'CANCELADA'"
+        >
+          @switch (dados.status) {
+            @case ('TRIAL') { Periodo de teste }
+            @case ('ATIVA') { Assinatura ativa }
+            @case ('INADIMPLENTE') { Pagamento pendente }
+            @case ('CANCELADA') { Assinatura cancelada }
+          }
+        </span>
+        <span class="plano-atual">Plano {{ nomePlano() }}</span>
+      </div>
+
+      @if (dados.status === 'TRIAL' && diasRestantesTrial() !== null) {
+        <p class="explicacao">Faltam {{ diasRestantesTrial() }} dia(s) de teste gratuito.</p>
+      } @else if (dados.status === 'ATIVA' && dados.proximaCobrancaEm) {
+        <p class="explicacao">Proxima cobranca em {{ dados.proximaCobrancaEm }}.</p>
+      } @else if (dados.status === 'INADIMPLENTE') {
+        <p class="explicacao">
+          Pague a fatura abaixo para continuar criando novos horarios e profissionais. Reservas e relatorios
+          continuam disponiveis normalmente.
+        </p>
+      } @else if (dados.status === 'CANCELADA') {
+        <p class="explicacao">Sua assinatura foi cancelada - entre em contato com o suporte para reativar.</p>
+      }
+    </mat-card-content>
+  </mat-card>
+
+  @if (dados.faturaPendente; as fatura) {
+    <mat-card class="card-fatura">
+      <mat-card-header>
+        <mat-card-title>Fatura pendente - R$ {{ fatura.valor }}</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <p class="explicacao">Vencimento: {{ fatura.vencimento }}. Pague via Pix escaneando o QR Code ou copiando o codigo abaixo.</p>
+
+        @if (fatura.pixQrCodeBase64) {
+          <img class="qr-code" [src]="'data:image/png;base64,' + fatura.pixQrCodeBase64" alt="QR Code Pix" />
+        }
+
+        <div class="linha-copiavel">
+          <span class="rotulo">Pix copia e cola</span>
+          <code class="pix-payload">{{ fatura.pixPayload }}</code>
+          <button mat-icon-button type="button" (click)="copiar(fatura.pixPayload)" aria-label="Copiar codigo Pix">
+            <mat-icon>content_copy</mat-icon>
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  }
+
+  @if (dados.status !== 'CANCELADA') {
+    <mat-card class="card-cancelar">
+      <mat-card-content>
+        <button mat-stroked-button color="warn" type="button" [disabled]="cancelando()" (click)="cancelarAssinatura()">
+          @if (cancelando()) {
+            <mat-spinner diameter="20" />
+          } @else {
+            Cancelar assinatura
+          }
+        </button>
+      </mat-card-content>
+    </mat-card>
+  }
+}

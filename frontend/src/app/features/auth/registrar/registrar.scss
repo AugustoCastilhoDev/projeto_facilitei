@@ -24,6 +24,23 @@
   }
 }
 
+.rotulo-planos {
+  margin: 4px 0 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.grupo-planos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.opcao-plano {
+  font-size: 0.9rem;
+}
+
 .erro {
   color: var(--mat-sys-error);
   margin: 0 0 8px;

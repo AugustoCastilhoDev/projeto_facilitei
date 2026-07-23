@@ -2,7 +2,7 @@
 
 > Como usar: marque `[x]` conforme for concluindo cada item. Sinta-se livre para editar, reordenar, adicionar notas/datas ou remover itens que deixarem de fazer sentido — este documento é vivo, não um contrato fechado.
 
-O que existe hoje é uma base técnica sólida (agendamento multi-tenant com múltiplos profissionais por negócio, vínculo serviço↔profissional editável dos dois lados, sinal via Pix, WhatsApp real via MyZap, relatórios básicos, painel admin, onboarding self-service, ~123 testes automatizados). O sinal já cai direto na conta Asaas de cada negócio (modelo "traga sua própria conta de pagamento" — BYOPP, ver README) — decisão tomada no lugar do split/marketplace originalmente cogitado, porque não exige formalização prévia com a Asaas nem custodia dinheiro de terceiros. Uma minuta de Termos de Uso/Política de Privacidade já foi escrita (`docs/`), pendente de revisão profissional. O que ainda falta para vender de verdade não é código — é fechar esse jurídico com um profissional e decidir onde hospedar em produção.
+O que existe hoje é uma base técnica sólida (agendamento multi-tenant com múltiplos profissionais por negócio, vínculo serviço↔profissional editável dos dois lados, sinal via Pix, WhatsApp real via MyZap, relatórios básicos, cobrança automática da própria assinatura SaaS com planos e trial, painel admin, onboarding self-service, ~147 testes automatizados). O sinal já cai direto na conta Asaas de cada negócio (modelo "traga sua própria conta de pagamento" — BYOPP, ver README) — decisão tomada no lugar do split/marketplace originalmente cogitado, porque não exige formalização prévia com a Asaas nem custodia dinheiro de terceiros. A mensalidade da Facilitei em si (diferente do sinal) usa a chave Asaas da própria plataforma. Uma minuta de Termos de Uso/Política de Privacidade já foi escrita (`docs/`), pendente de revisão profissional. O que ainda falta para vender de verdade não é código — é fechar esse jurídico com um profissional e decidir onde hospedar em produção.
 
 Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto).
 
@@ -16,7 +16,7 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 | ~~1 profissional/cadeira por negócio~~ Múltiplos profissionais, cada um com sua agenda ✅ | — |
 | ~~Vincular serviço a profissional só pela tela de Profissionais~~ Editável também pela tela de Serviços ✅ | — |
 | ~~Sinal cai na conta Asaas da plataforma~~ Sinal direto na conta do negócio (BYOPP) ✅ | Onboarding assistido/automatizado da conta Asaas do tenant (hoje é manual, copiar/colar a chave) |
-| Sem cobrança pela assinatura do SaaS | Billing recorrente, planos e trial |
+| ~~Sem cobrança pela assinatura do SaaS~~ Cobrança automática via Pix, planos e trial de 30 dias ✅ | Troca de plano e reativação de assinatura cancelada pela própria UI (hoje é manual, contato com suporte) |
 | Roda só localmente (docker compose) | Deploy em produção, com monitoramento |
 | ~~Sem Termos de Uso nem Política de Privacidade~~ Minuta escrita, pendente revisão profissional ✅ | LGPD tratada, contrato entre plataforma e negócio |
 | ~~Notificação = log no console~~ WhatsApp real via MyZap (não-oficial) ✅ | Avaliar migrar para a API oficial da Meta se o número usado for suspenso |
@@ -26,7 +26,7 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 ## Fase 0 — Validar com o que existe *(contínuo)*
 
 - [ ] Conseguir 5–10 negócios reais (barbearias/salões pequenos) usando o MVP atual, de graça ou com desconto
-- [ ] Cobrar a mensalidade combinada manualmente, fora do sistema, enquanto o billing próprio não existe
+- [x] ~~Cobrar a mensalidade combinada manualmente, fora do sistema, enquanto o billing próprio não existe~~ — billing próprio implementado (ver Fase 2), a cobrança já é automática
 - [ ] Coletar feedback de uso real antes de investir pesado nas próximas fases
 
 ## Fase 1 — Fechar os bloqueadores *(~4–6 semanas)*
@@ -54,7 +54,7 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 ### Produto
 - [x] Suporte a múltiplos profissionais/recursos por negócio — cada profissional com expediente próprio e seus próprios serviços vinculados (N:N); conflito de horário passou a ser escopado por profissional, não mais por tenant inteiro
 - [x] WhatsApp real substituindo o mock de console — via [MyZap](https://www.myzap.net), um provedor não-oficial (automação sobre WhatsApp Web, não a Cloud API da Meta); mais simples e rápido de configurar que a API oficial, mas com risco de o número ser suspenso pela Meta a qualquer momento; alternável para o mock via `facilitei.notification.provider`
-- [ ] Cobrança da própria assinatura SaaS — planos, período de teste, cancelamento
+- [x] Cobrança da própria assinatura SaaS — 3 planos fixos (Básico/Profissional/Premium, limitados por número de profissionais), trial de 30 dias, cobrança Pix automática recorrente via chave Asaas da própria plataforma (pacote `billing`), webhook dedicado, bloqueio leve (só ações de novo uso) quando inadimplente/cancelada, cancelamento pela UI
 - [x] Relatórios básicos para o dono do negócio: faturamento do período, taxa de não comparecimento, clientes recorrentes — exigiu ativar o cancelamento manual (`PaymentStatus.CANCELADO`, já existia no enum sem nenhum código usá-lo) e adicionar marcação manual de comparecimento na tela Agenda, já que o sistema não tinha nenhum registro de comparecimento antes disso
 
 ### Infraestrutura
@@ -96,7 +96,7 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 
 | Modelo | Como funciona | Trade-off |
 |---|---|---|
-| **Assinatura fixa (implementado como BYOPP)** | R$ 49–149/mês por plano, limitado por número de profissionais | Receita previsível, mas é barreira de entrada para negócio pequeno. É o único modelo compatível com o BYOPP tal como está — como o sinal cai direto na conta do tenant, a plataforma não tem como cobrar automaticamente uma taxa % por transação |
+| **Assinatura fixa (implementado)** | R$ 49–149/mês por plano (Básico/Profissional/Premium), limitado por número de profissionais; cobrança Pix automática via chave Asaas da própria plataforma, trial de 30 dias | Receita previsível, mas é barreira de entrada para negócio pequeno. É o único modelo compatível com o BYOPP tal como está — como o sinal cai direto na conta do tenant, a plataforma não tem como cobrar automaticamente uma taxa % por transação |
 | Taxa por transação | 2–4% sobre cada sinal Pix cobrado | Exigiria voltar ao modelo de split/marketplace (decidido não seguir por enquanto) para conseguir reter uma fatia automaticamente |
 | Híbrido | Assinatura baixa + taxa pequena por transação, trial de 14–30 dias | Modelo dos concorrentes já validados no Brasil, mas inviável sem split — reavaliar só se o BYOPP se mostrar insuficiente |
 

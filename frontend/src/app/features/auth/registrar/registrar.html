@@ -42,6 +42,25 @@
         }
 
         <mat-form-field appearance="outline" class="campo">
+          <mat-label>CPF/CNPJ do negocio</mat-label>
+          <input matInput formControlName="cpfCnpj" placeholder="Usado para cobrar a mensalidade da assinatura" />
+          @if (form.controls.cpfCnpj.hasError('required') && form.controls.cpfCnpj.touched) {
+            <mat-error>CPF/CNPJ e obrigatorio.</mat-error>
+          }
+        </mat-form-field>
+
+        <p class="rotulo-planos">Escolha um plano</p>
+        <mat-radio-group formControlName="plano" class="grupo-planos">
+          @for (opcao of planos; track opcao.valor) {
+            <mat-radio-button [value]="opcao.valor" class="opcao-plano">
+              {{ opcao.nome }} - R$ {{ opcao.precoMensal }}/mes
+              ({{ opcao.limiteProfissionais === null ? 'profissionais ilimitados' : 'ate ' + opcao.limiteProfissionais + ' profissionais' }})
+            </mat-radio-button>
+          }
+        </mat-radio-group>
+        <mat-hint>30 dias gratis para testar antes da primeira cobranca.</mat-hint>
+
+        <mat-form-field appearance="outline" class="campo">
           <mat-label>Seu email (login do painel)</mat-label>
           <input matInput type="email" formControlName="emailAdmin" autocomplete="username" />
           @if (form.controls.emailAdmin.hasError('required') && form.controls.emailAdmin.touched) {

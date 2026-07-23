@@ -8,6 +8,10 @@
 facilitei:
   asaas:
     api-key: COLE_AQUI_SUA_CHAVE_SANDBOX_DO_ASAAS
+    # Usada para testar a cobranca da propria assinatura (pacote billing) -
+    # pode ser a MESMA chave sandbox acima, ja que so existe uma conta
+    # sandbox disponivel neste ambiente de teste.
+    webhook-token: COLE_AQUI_UM_TOKEN_QUALQUER_PARA_TESTE
   # Para ativar o envio real de WhatsApp via MyZap: cole a "chave fixa"
   # (mz_...) obtida em Login + GET /api/chaves/fixa no painel do MyZap, e
   # troque notification.provider para "myzap". Deixe "console" (default) se

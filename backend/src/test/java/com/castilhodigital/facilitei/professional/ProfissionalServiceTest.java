@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
+import com.castilhodigital.facilitei.billing.AssinaturaGuard;
 import com.castilhodigital.facilitei.catalog.ServiceOffering;
 import com.castilhodigital.facilitei.catalog.ServiceOfferingService;
 import com.castilhodigital.facilitei.common.exception.EntidadeNaoEncontradaException;
@@ -28,13 +29,16 @@ class ProfissionalServiceTest {
     @Mock
     private ServiceOfferingService serviceOfferingService;
 
+    @Mock
+    private AssinaturaGuard assinaturaGuard;
+
     private ProfissionalService profissionalService;
 
     private Tenant tenant;
 
     @BeforeEach
     void setUp() {
-        profissionalService = new ProfissionalService(profissionalRepository, serviceOfferingService);
+        profissionalService = new ProfissionalService(profissionalRepository, serviceOfferingService, assinaturaGuard);
         tenant = new Tenant();
         ReflectionTestUtils.setField(tenant, "id", 1L);
     }
@@ -62,6 +66,29 @@ class ProfissionalServiceTest {
         assertThat(profissional.getNome()).isEqualTo("Joana");
         assertThat(profissional.getServicos()).containsExactly(servico);
         assertThat(profissional.isAtivo()).isTrue();
+    }
+
+    @Test
+    void criarComAssinaturaBloqueadaLancaExcecao() {
+        org.mockito.Mockito.doThrow(new RegraDeNegocioException("Assinatura cancelada - regularize."))
+                .when(assinaturaGuard).verificarUsoLiberado(tenant);
+
+        assertThatThrownBy(() -> profissionalService.criar(
+                tenant, "Joana", LocalTime.of(9, 0), LocalTime.of(18, 0), List.of()))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("Assinatura");
+    }
+
+    @Test
+    void criarComLimiteDeProfissionaisAtingidoLancaExcecao() {
+        when(profissionalRepository.findByTenantIdAndAtivoTrueOrderByNome(1L)).thenReturn(List.of(new Profissional(), new Profissional()));
+        org.mockito.Mockito.doThrow(new RegraDeNegocioException("Limite de profissionais do plano atingido."))
+                .when(assinaturaGuard).verificarLimiteProfissionais(tenant, 2);
+
+        assertThatThrownBy(() -> profissionalService.criar(
+                tenant, "Joana", LocalTime.of(9, 0), LocalTime.of(18, 0), List.of()))
+                .isInstanceOf(RegraDeNegocioException.class)
+                .hasMessageContaining("Limite");
     }
 
     @Test

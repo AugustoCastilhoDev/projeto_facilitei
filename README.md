@@ -34,6 +34,7 @@ backend/src/main/java/com/castilhodigital/facilitei/
 ├── payment/        # Porta PaymentGatewayService + implementação payment/asaas
 ├── notification/   # Porta NotificationService + implementações console (mock) e notification/myzap (WhatsApp real)
 ├── report/         # Relatório básico (faturamento, taxa de não comparecimento, clientes recorrentes)
+├── billing/        # Assinatura do PRÓPRIO tenant com a plataforma (planos, trial, fatura Pix, cancelamento)
 └── common/         # Config transversal (segurança, exceptions, ProblemDetail, scheduling, crypto)
 ```
 
@@ -111,6 +112,10 @@ Pontos que valem a pena mencionar numa entrevista — cada um resolveu um proble
 - **Relatório calculado em memória com Streams, não com uma query SQL `GROUP BY`.** É a primeira agregação do projeto — o volume de reservas confirmadas por tenant/mês é pequeno o bastante (dezenas a poucas centenas) para não justificar a complexidade extra de uma projeção JPQL agregada; um `JOIN FETCH` simples + `Collectors.groupingBy` é mais legível e fácil de testar.
 - **`SlotResponse` ganhou dados de `Booking` sem criar uma associação bidirecional `Slot ↔ Booking`.** Isso criaria acoplamento de entidade cíclico entre os pacotes `scheduling`/`booking` só para exibir cliente/status na agenda do admin. Em vez disso, `SlotAdminController.listarAgenda` busca os slots e os bookings correspondentes separadamente (`BookingService.buscarPorSlotIds`) e faz o merge no próprio controller — camada que já atua como ponto de composição entre pacotes neste projeto (mesmo espírito de `BookingCheckoutService`).
 - **Vínculo N:N Profissional↔Serviço editável dos dois lados, sem tornar a dependência entre pacotes circular.** `Profissional` (pacote `professional`) é o owning side do `@ManyToMany` com `ServiceOffering` (pacote `catalog`); `ProfissionalService` já dependia de `ServiceOfferingService` para validar `servicoIds`. Ao expor o mesmo vínculo editável pela tela de Serviços, `ServiceOfferingService` precisou escrever na coleção `servicos` de cada `Profissional` afetado (mesma transação do create/update do serviço, para manter atomicidade) — mas injeta `ProfissionalRepository`, não `ProfissionalService`, para não fechar um ciclo de bean Spring (que já dependia dele). Na leitura, `ServiceOfferingAdminController` injeta `ProfissionalService` (essa sim) para montar `profissionalIds`/`profissionalNomes` na resposta — composição na camada de controller, mesmo padrão do item anterior.
+- **A cobrança da própria assinatura SaaS reaproveita o `PaymentGatewayService` já existente, só trocando de qual conta Asaas é a cobrança.** `criarCobrancaPix`/`buscarQrCodePix` já recebiam a `apiKey` por chamada (pensado pro BYOPP) — o pacote `billing` só passa `facilitei.asaas.api-key` (a chave da própria plataforma, reservada desde o início e nunca usada até essa feature) em vez da chave de um tenant. Nenhum código novo de integração com a Asaas foi necessário.
+- **Webhook da assinatura é um endpoint separado do webhook do BYOPP**, mesmo os dois batendo na mesma API da Asaas. O BYOPP identifica o tenant pelo pagamento recebido e valida um token *por tenant* (uma conta Asaas por negócio); a assinatura tem uma única conta Asaas (a da própria plataforma), então não faz sentido o mecanismo por-tenant — `/api/webhooks/asaas-assinatura` valida um único token fixo de plataforma (`facilitei.asaas.webhook-token`).
+- **Bloqueio de assinatura pendente/cancelada é deliberadamente "leve".** `AssinaturaGuard` só trava ações que aumentam o uso (gerar horários, criar profissional) — login, relatórios e o pagamento da própria fatura continuam liberados. A alternativa (bloquear o login inteiro) foi descartada por impedir o próprio dono de regularizar o pagamento.
+- **Tenants criados antes desta feature foram "grandfathered" como `ATIVA`, sem trial.** A migration `V11` seta o default `assinatura_status = 'ATIVA'` na coluna nova — só tenants novos, criados via `RegistrationService`, entram como `TRIAL` com `trialAte` preenchido. Isso evita bloquear retroativamente negócios já em uso.
 
 ## Limitações conhecidas
 
@@ -125,6 +130,8 @@ Pontos que valem a pena mencionar numa entrevista — cada um resolveu um proble
 - **Notificação por WhatsApp sai de uma única conta/número da plataforma**, não por tenant — todo negócio que usa o Facilitei hoje compartilha o mesmo remetente.
 - **Faturamento do relatório não distingue sinal já recebido do valor total combinado a receber no local.** Conta o preço cheio do serviço para toda reserva confirmada que não foi marcada como não comparecimento, mas o sistema só sabe com certeza que o *sinal* (quando há) foi pago via Pix — o restante é um valor combinado presencialmente, sem registro.
 - **Comparecimento é 100% manual** — não há lembrete automático nem confirmação do próprio cliente; se o admin nunca marcar, a reserva simplesmente não entra no cálculo da taxa de não comparecimento (fica de fora do denominador, não conta como comparecimento).
+- **Sem troca de plano nem reativação de assinatura cancelada pela UI** — o plano é escolhido uma única vez no cadastro; upgrade/downgrade e reativação exigem contato manual com o suporte por enquanto.
+- **Cobrança da assinatura sem proration** — cada fatura cobra o valor cheio do plano, sem calcular valor proporcional por dias parciais de uso (ex.: ao cancelar no meio do ciclo).
 
 ## Como rodar localmente
 
@@ -142,13 +149,13 @@ docker compose up -d
 
 ### 2. Chave da Asaas (opcional, só necessária para testar cobrança real de Pix)
 
-Desde o modelo BYOPP ("traga sua própria conta"), a chave usada para gerar a cobrança Pix do sinal **não** vem mais de `application-local.yml` — cada tenant configura a própria, direto no painel (aba "Pagamentos", depois de logar). `application-local.yml` continua existindo só para a chave *da própria plataforma*, reservada para uma cobrança futura ainda não implementada (a assinatura do SaaS):
+Desde o modelo BYOPP ("traga sua própria conta"), a chave usada para gerar a cobrança Pix do sinal **não** vem mais de `application-local.yml` — cada tenant configura a própria, direto no painel (aba "Pagamentos", depois de logar). `application-local.yml` continua existindo para a chave *da própria plataforma*, usada para cobrar a assinatura mensal de cada tenant (pacote `billing`) — mesma conta sandbox serve para os dois fins localmente:
 
 ```bash
 cp backend/src/main/resources/application-local.yml.example backend/src/main/resources/application-local.yml
 ```
 
-Esse arquivo está no `.gitignore` — nunca será commitado. Para testar a geração real de um Pix pelo tenant, use uma chave sandbox da Asaas na tela "Pagamentos" do painel (ver [`docs/configurar-pagamentos.md`](docs/configurar-pagamentos.md)).
+Esse arquivo está no `.gitignore` — nunca será commitado. Para testar a geração real de um Pix pelo tenant, use uma chave sandbox da Asaas na tela "Pagamentos" do painel (ver [`docs/configurar-pagamentos.md`](docs/configurar-pagamentos.md)). O `webhook-token` do mesmo bloco autentica `/api/webhooks/asaas-assinatura` (cobrança da própria assinatura) — pode ser qualquer valor fixo em ambiente local.
 
 O mesmo `application-local.yml` também tem a chave do **MyZap** (WhatsApp), com `facilitei.notification.provider` como `console` (default, só loga) ou `myzap` (envia de verdade). Sem uma conta MyZap configurada, deixe em `console`.
 
@@ -208,7 +215,7 @@ cd backend && mvn test
 cd frontend && ng test --watch=false
 ```
 
-110 testes no backend e 13 suítes no frontend, cobrindo desde regras de negócio isoladas (cálculo de sinal, conflito de horário por profissional, expiração, rate limiting, criptografia de credenciais) até os controllers REST, a integração real com o sandbox da Asaas, o envio de WhatsApp via MyZap e o relatório básico.
+133 testes no backend e 14 suítes no frontend, cobrindo desde regras de negócio isoladas (cálculo de sinal, conflito de horário por profissional, expiração, rate limiting, criptografia de credenciais) até os controllers REST, a integração real com o sandbox da Asaas, o envio de WhatsApp via MyZap, o relatório básico e a cobrança da assinatura SaaS.
 
 O GitHub Actions (`.github/workflows/ci.yml`) roda exatamente esses mesmos comandos — `mvn test` + `mvn package` no backend, `ng test` + `ng build` no frontend — a cada push e pull request para a `main`. Nenhum teste depende de banco de dados real (tudo via `@WebMvcTest`/Mockito ou testes puros de unidade), então o job do backend não precisa subir um Postgres.
 

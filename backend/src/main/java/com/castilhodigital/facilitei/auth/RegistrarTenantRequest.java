@@ -1,5 +1,6 @@
 package com.castilhodigital.facilitei.auth;
 
+import com.castilhodigital.facilitei.billing.Plano;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -29,7 +30,13 @@ public record RegistrarTenantRequest(
 
         @NotBlank(message = "Senha e obrigatoria.")
         @Size(min = 8, message = "Senha deve ter no minimo 8 caracteres.")
-        String senhaAdmin
+        String senhaAdmin,
+
+        @NotBlank(message = "CPF/CNPJ e obrigatorio.")
+        String cpfCnpj,
+
+        @NotNull(message = "Plano e obrigatorio.")
+        Plano plano
 
 ) {
 }

@@ -46,7 +46,7 @@ class AuthControllerTest {
         RegistrarTenantRequest request = new RegistrarTenantRequest(
                 "Barbearia do Ze", "barbearia-do-ze",
                 java.time.LocalTime.of(9, 0), java.time.LocalTime.of(18, 0),
-                "ze@example.com", "senha12345");
+                "ze@example.com", "senha12345", "52998224725", com.castilhodigital.facilitei.billing.Plano.BASICO);
 
         when(registrationService.registrarTenantEAdmin(any()))
                 .thenReturn(new RegistrarTenantResponse(1L, "barbearia-do-ze", 10L, "ze@example.com"));
@@ -65,7 +65,7 @@ class AuthControllerTest {
         RegistrarTenantRequest request = new RegistrarTenantRequest(
                 "Barbearia do Ze", "barbearia-do-ze",
                 java.time.LocalTime.of(9, 0), java.time.LocalTime.of(18, 0),
-                "email-invalido", "senha12345");
+                "email-invalido", "senha12345", "52998224725", com.castilhodigital.facilitei.billing.Plano.BASICO);
 
         mockMvc.perform(post("/api/auth/registrar")
                         .contentType(MediaType.APPLICATION_JSON)

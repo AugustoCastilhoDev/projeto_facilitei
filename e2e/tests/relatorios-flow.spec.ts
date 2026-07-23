@@ -30,6 +30,7 @@ async function cadastrarTenantComServico(
   await page.getByLabel('Link de agendamento (slug)').fill(opcoes.slug);
   await page.getByLabel('Abre as').fill('08:00');
   await page.getByLabel('Fecha as').fill('20:00');
+  await page.getByLabel('CPF/CNPJ').fill(CPF_TESTE);
   await page.getByLabel('Seu email (login do painel)').fill(email);
   await page.getByLabel('Senha', { exact: true }).fill(senha);
   await page.getByLabel('Confirmar senha').fill(senha);

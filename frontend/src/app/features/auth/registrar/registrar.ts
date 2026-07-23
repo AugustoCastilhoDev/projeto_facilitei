@@ -7,7 +7,9 @@ import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatRadioModule } from '@angular/material/radio';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { PLANOS } from '../../../core/models/plano.model';
 import { AuthService } from '../../../core/services/auth.service';
 
 function senhasIguaisValidator(grupo: AbstractControl): ValidationErrors | null {
@@ -41,6 +43,7 @@ function slugify(texto: string): string {
     MatCardModule,
     MatFormFieldModule,
     MatInputModule,
+    MatRadioModule,
     MatButtonModule,
     MatProgressSpinnerModule,
   ],
@@ -55,6 +58,8 @@ export class Registrar {
 
   private slugEditadoManualmente = false;
 
+  protected readonly planos = PLANOS;
+
   protected readonly form = this.fb.nonNullable.group(
     {
       nomeNegocio: ['', Validators.required],
@@ -64,6 +69,8 @@ export class Registrar {
       emailAdmin: ['', [Validators.required, Validators.email]],
       senhaAdmin: ['', [Validators.required, Validators.minLength(8)]],
       confirmarSenha: ['', Validators.required],
+      cpfCnpj: ['', Validators.required],
+      plano: ['BASICO', Validators.required],
     },
     { validators: [senhasIguaisValidator, horariosValidator] },
   );
@@ -91,11 +98,11 @@ export class Registrar {
 
     this.carregando.set(true);
     this.erro.set(null);
-    const { nomeNegocio, slug, horarioAbertura, horarioFechamento, emailAdmin, senhaAdmin } =
+    const { nomeNegocio, slug, horarioAbertura, horarioFechamento, emailAdmin, senhaAdmin, cpfCnpj, plano } =
       this.form.getRawValue();
 
     this.authService
-      .registrar({ nomeNegocio, slug, horarioAbertura, horarioFechamento, emailAdmin, senhaAdmin })
+      .registrar({ nomeNegocio, slug, horarioAbertura, horarioFechamento, emailAdmin, senhaAdmin, cpfCnpj, plano })
       .subscribe({
         next: (resposta) => {
           this.snackBar.open('Cadastro realizado! Faca login para continuar.', 'Fechar', { duration: 4000 });

@@ -1,5 +1,6 @@
 package com.castilhodigital.facilitei.professional;
 
+import com.castilhodigital.facilitei.billing.AssinaturaGuard;
 import com.castilhodigital.facilitei.catalog.ServiceOffering;
 import com.castilhodigital.facilitei.catalog.ServiceOfferingService;
 import com.castilhodigital.facilitei.common.exception.EntidadeNaoEncontradaException;
@@ -19,10 +20,13 @@ public class ProfissionalService {
 
     private final ProfissionalRepository profissionalRepository;
     private final ServiceOfferingService serviceOfferingService;
+    private final AssinaturaGuard assinaturaGuard;
 
     @Transactional
     public Profissional criar(Tenant tenant, String nome, LocalTime horarioAbertura, LocalTime horarioFechamento,
                                List<Long> servicoIds) {
+        assinaturaGuard.verificarUsoLiberado(tenant);
+        assinaturaGuard.verificarLimiteProfissionais(tenant, profissionalRepository.findByTenantIdAndAtivoTrueOrderByNome(tenant.getId()).size());
         validarHorario(horarioAbertura, horarioFechamento);
 
         Profissional profissional = new Profissional();
