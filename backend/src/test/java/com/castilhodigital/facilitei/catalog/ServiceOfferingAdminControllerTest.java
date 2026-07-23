@@ -14,6 +14,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.castilhodigital.facilitei.auth.TenantSecurityGuard;
 import com.castilhodigital.facilitei.common.exception.EntidadeNaoEncontradaException;
+import com.castilhodigital.facilitei.professional.Profissional;
+import com.castilhodigital.facilitei.professional.ProfissionalService;
 import com.castilhodigital.facilitei.tenant.Tenant;
 import com.castilhodigital.facilitei.tenant.TenantService;
 import java.math.BigDecimal;
@@ -40,6 +42,9 @@ class ServiceOfferingAdminControllerTest {
 
     @MockitoBean
     private ServiceOfferingService serviceOfferingService;
+
+    @MockitoBean
+    private ProfissionalService profissionalService;
 
     @MockitoBean
     private TenantService tenantService;
@@ -71,14 +76,33 @@ class ServiceOfferingAdminControllerTest {
     }
 
     @Test
+    void listarIncluiProfissionaisVinculados() throws Exception {
+        Tenant tenant = new Tenant();
+        ServiceOffering servico = novoServico(5L, tenant);
+
+        Profissional profissional = new Profissional();
+        profissional.setNome("Ana");
+        ReflectionTestUtils.setField(profissional, "id", 7L);
+        profissional.getServicos().add(servico);
+
+        when(serviceOfferingService.listarTodos(1L)).thenReturn(List.of(servico));
+        when(profissionalService.listarTodos(1L)).thenReturn(List.of(profissional));
+
+        mockMvc.perform(get("/api/admin/tenants/1/services"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].profissionalIds[0]").value(7))
+                .andExpect(jsonPath("$[0].profissionalNomes[0]").value("Ana"));
+    }
+
+    @Test
     void criarComDadosValidosRetorna201() throws Exception {
         Tenant tenant = new Tenant();
         when(tenantService.buscarPorId(1L)).thenReturn(tenant);
-        when(serviceOfferingService.criar(eq(tenant), any(), anyInt(), any(), any()))
+        when(serviceOfferingService.criar(eq(tenant), any(), anyInt(), any(), any(), any()))
                 .thenReturn(novoServico(9L, tenant));
 
         ServiceOfferingRequest request = new ServiceOfferingRequest(
-                "Corte", 30, new BigDecimal("50.00"), new BigDecimal("20.00"));
+                "Corte", 30, new BigDecimal("50.00"), new BigDecimal("20.00"), List.of());
 
         mockMvc.perform(post("/api/admin/tenants/1/services")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -90,7 +114,7 @@ class ServiceOfferingAdminControllerTest {
     @Test
     void criarComDuracaoInvalidaRetorna400() throws Exception {
         ServiceOfferingRequest request = new ServiceOfferingRequest(
-                "Corte", -10, new BigDecimal("50.00"), new BigDecimal("20.00"));
+                "Corte", -10, new BigDecimal("50.00"), new BigDecimal("20.00"), List.of());
 
         mockMvc.perform(post("/api/admin/tenants/1/services")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -100,11 +124,11 @@ class ServiceOfferingAdminControllerTest {
 
     @Test
     void atualizarServicoInexistenteRetorna404() throws Exception {
-        when(serviceOfferingService.atualizar(eq(1L), eq(999L), any(), anyInt(), any(), any()))
+        when(serviceOfferingService.atualizar(eq(1L), eq(999L), any(), anyInt(), any(), any(), any()))
                 .thenThrow(new EntidadeNaoEncontradaException("Servico nao encontrado (id=999) para este tenant."));
 
         ServiceOfferingRequest request = new ServiceOfferingRequest(
-                "Corte", 30, new BigDecimal("50.00"), new BigDecimal("20.00"));
+                "Corte", 30, new BigDecimal("50.00"), new BigDecimal("20.00"), List.of());
 
         mockMvc.perform(put("/api/admin/tenants/1/services/999")
                         .contentType(MediaType.APPLICATION_JSON)

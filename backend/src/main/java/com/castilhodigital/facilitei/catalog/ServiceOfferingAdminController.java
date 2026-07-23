@@ -1,6 +1,8 @@
 package com.castilhodigital.facilitei.catalog;
 
 import com.castilhodigital.facilitei.auth.TenantSecurityGuard;
+import com.castilhodigital.facilitei.professional.Profissional;
+import com.castilhodigital.facilitei.professional.ProfissionalService;
 import com.castilhodigital.facilitei.tenant.Tenant;
 import com.castilhodigital.facilitei.tenant.TenantService;
 import jakarta.validation.Valid;
@@ -32,14 +34,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class ServiceOfferingAdminController {
 
     private final ServiceOfferingService serviceOfferingService;
+    private final ProfissionalService profissionalService;
     private final TenantService tenantService;
     private final TenantSecurityGuard tenantSecurityGuard;
 
     @GetMapping
     public List<ServiceOfferingResponse> listar(@PathVariable Long tenantId) {
         tenantSecurityGuard.verificarAcessoAoTenant(tenantId);
-        return serviceOfferingService.listarTodos(tenantId).stream()
-                .map(ServiceOfferingResponse::from)
+        List<ServiceOffering> servicos = serviceOfferingService.listarTodos(tenantId);
+        List<Profissional> profissionais = profissionalService.listarTodos(tenantId);
+        return servicos.stream()
+                .map(servico -> ServiceOfferingResponse.from(servico, profissionaisDoServico(profissionais, servico)))
                 .toList();
     }
 
@@ -48,18 +53,18 @@ public class ServiceOfferingAdminController {
                                                           @Valid @RequestBody ServiceOfferingRequest request) {
         tenantSecurityGuard.verificarAcessoAoTenant(tenantId);
         Tenant tenant = tenantService.buscarPorId(tenantId);
-        ServiceOffering service = serviceOfferingService.criar(
-                tenant, request.nome(), request.duracaoMin(), request.preco(), request.sinalPercentual());
-        return ResponseEntity.status(HttpStatus.CREATED).body(ServiceOfferingResponse.from(service));
+        ServiceOffering service = serviceOfferingService.criar(tenant, request.nome(), request.duracaoMin(),
+                request.preco(), request.sinalPercentual(), request.profissionalIds());
+        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(tenantId, service));
     }
 
     @PutMapping("/{serviceId}")
     public ServiceOfferingResponse atualizar(@PathVariable Long tenantId, @PathVariable Long serviceId,
                                               @Valid @RequestBody ServiceOfferingRequest request) {
         tenantSecurityGuard.verificarAcessoAoTenant(tenantId);
-        ServiceOffering service = serviceOfferingService.atualizar(
-                tenantId, serviceId, request.nome(), request.duracaoMin(), request.preco(), request.sinalPercentual());
-        return ServiceOfferingResponse.from(service);
+        ServiceOffering service = serviceOfferingService.atualizar(tenantId, serviceId, request.nome(),
+                request.duracaoMin(), request.preco(), request.sinalPercentual(), request.profissionalIds());
+        return toResponse(tenantId, service);
     }
 
     @DeleteMapping("/{serviceId}")
@@ -74,6 +79,17 @@ public class ServiceOfferingAdminController {
         tenantSecurityGuard.verificarAcessoAoTenant(tenantId);
         serviceOfferingService.ativar(tenantId, serviceId);
         return ResponseEntity.noContent().build();
+    }
+
+    private ServiceOfferingResponse toResponse(Long tenantId, ServiceOffering service) {
+        List<Profissional> profissionais = profissionalService.listarTodos(tenantId);
+        return ServiceOfferingResponse.from(service, profissionaisDoServico(profissionais, service));
+    }
+
+    private List<Profissional> profissionaisDoServico(List<Profissional> todos, ServiceOffering servico) {
+        return todos.stream()
+                .filter(p -> p.getServicos().stream().anyMatch(s -> s.getId().equals(servico.getId())))
+                .toList();
     }
 
 }

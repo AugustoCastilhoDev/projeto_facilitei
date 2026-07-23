@@ -43,6 +43,18 @@
       }
     </mat-form-field>
 
+    <mat-form-field appearance="outline" class="campo">
+      <mat-label>Profissionais que realizam</mat-label>
+      <mat-select formControlName="profissionalIds" multiple>
+        @for (profissional of data.profissionais; track profissional.id) {
+          <mat-option [value]="profissional.id">{{ profissional.nome }}</mat-option>
+        }
+      </mat-select>
+      @if (data.profissionais.length === 0) {
+        <mat-hint>Cadastre um profissional primeiro para poder vincula-lo aqui.</mat-hint>
+      }
+    </mat-form-field>
+
     @if (erro()) {
       <p class="erro">{{ erro() }}</p>
     }

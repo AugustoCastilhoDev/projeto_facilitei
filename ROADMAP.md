@@ -2,7 +2,7 @@
 
 > Como usar: marque `[x]` conforme for concluindo cada item. Sinta-se livre para editar, reordenar, adicionar notas/datas ou remover itens que deixarem de fazer sentido — este documento é vivo, não um contrato fechado.
 
-O que existe hoje é uma base técnica sólida (agendamento multi-tenant com múltiplos profissionais por negócio, sinal via Pix, WhatsApp real via MyZap, relatórios básicos, painel admin, onboarding self-service, ~117 testes automatizados). O sinal já cai direto na conta Asaas de cada negócio (modelo "traga sua própria conta de pagamento" — BYOPP, ver README) — decisão tomada no lugar do split/marketplace originalmente cogitado, porque não exige formalização prévia com a Asaas nem custodia dinheiro de terceiros. Uma minuta de Termos de Uso/Política de Privacidade já foi escrita (`docs/`), pendente de revisão profissional. O que ainda falta para vender de verdade não é código — é fechar esse jurídico com um profissional e decidir onde hospedar em produção.
+O que existe hoje é uma base técnica sólida (agendamento multi-tenant com múltiplos profissionais por negócio, vínculo serviço↔profissional editável dos dois lados, sinal via Pix, WhatsApp real via MyZap, relatórios básicos, painel admin, onboarding self-service, ~123 testes automatizados). O sinal já cai direto na conta Asaas de cada negócio (modelo "traga sua própria conta de pagamento" — BYOPP, ver README) — decisão tomada no lugar do split/marketplace originalmente cogitado, porque não exige formalização prévia com a Asaas nem custodia dinheiro de terceiros. Uma minuta de Termos de Uso/Política de Privacidade já foi escrita (`docs/`), pendente de revisão profissional. O que ainda falta para vender de verdade não é código — é fechar esse jurídico com um profissional e decidir onde hospedar em produção.
 
 Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto).
 
@@ -13,7 +13,8 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 | Hoje (MVP) | Produto vendável |
 |---|---|
 | ~~Cadastro de negócio só via API (curl)~~ Onboarding self-service ✅ | — |
-| ~~1 profissional/cadeira por negócio~~ Múltiplos profissionais, cada um com sua agenda ✅ | Vincular serviço a profissional direto pela tela de Serviços (hoje só pela tela de Profissionais) |
+| ~~1 profissional/cadeira por negócio~~ Múltiplos profissionais, cada um com sua agenda ✅ | — |
+| ~~Vincular serviço a profissional só pela tela de Profissionais~~ Editável também pela tela de Serviços ✅ | — |
 | ~~Sinal cai na conta Asaas da plataforma~~ Sinal direto na conta do negócio (BYOPP) ✅ | Onboarding assistido/automatizado da conta Asaas do tenant (hoje é manual, copiar/colar a chave) |
 | Sem cobrança pela assinatura do SaaS | Billing recorrente, planos e trial |
 | Roda só localmente (docker compose) | Deploy em produção, com monitoramento |

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
+import java.util.List;
 
 public record ServiceOfferingRequest(
 
@@ -23,7 +24,10 @@ public record ServiceOfferingRequest(
         @NotNull(message = "Percentual de sinal e obrigatorio.")
         @DecimalMin(value = "0.0", message = "Percentual de sinal deve estar entre 0 e 100.")
         @DecimalMax(value = "100.0", message = "Percentual de sinal deve estar entre 0 e 100.")
-        BigDecimal sinalPercentual
+        BigDecimal sinalPercentual,
+
+        @NotNull(message = "Lista de profissionais e obrigatoria (pode ser vazia).")
+        List<Long> profissionalIds
 
 ) {
 }

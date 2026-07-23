@@ -16,7 +16,7 @@ describe('ServiceFormDialog', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: MatDialogRef, useValue: { close: () => {} } },
-        { provide: MAT_DIALOG_DATA, useValue: { servico: null } },
+        { provide: MAT_DIALOG_DATA, useValue: { servico: null, profissionais: [] } },
       ],
     }).compileComponents();
 

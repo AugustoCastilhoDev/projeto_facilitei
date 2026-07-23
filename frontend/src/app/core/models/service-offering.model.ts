@@ -5,6 +5,8 @@ export interface ServiceOffering {
   preco: number;
   sinalPercentual: number;
   ativo: boolean;
+  profissionalIds: number[];
+  profissionalNomes: string[];
 }
 
 export interface ServiceOfferingRequest {
@@ -12,4 +14,5 @@ export interface ServiceOfferingRequest {
   duracaoMin: number;
   preco: number;
   sinalPercentual: number;
+  profissionalIds: number[];
 }

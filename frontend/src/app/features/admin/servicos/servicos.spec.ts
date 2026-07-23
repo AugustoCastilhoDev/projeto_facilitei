@@ -20,6 +20,7 @@ describe('Servicos', () => {
     httpMock = TestBed.inject(HttpTestingController);
 
     httpMock.expectOne((req) => req.url.includes('/services')).flush([]);
+    httpMock.expectOne((req) => req.url.includes('/profissionais')).flush([]);
 
     await fixture.whenStable();
   });

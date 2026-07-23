@@ -6,11 +6,14 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
+import { Profissional } from '../../../../core/models/profissional.model';
 import { ServiceOffering } from '../../../../core/models/service-offering.model';
 import { ServiceOfferingService } from '../../../../core/services/service-offering.service';
 
 export interface ServiceFormDialogData {
   servico: ServiceOffering | null;
+  profissionais: Profissional[];
 }
 
 /** Dialog de criacao/edicao de um servico (ver ServiceOfferingAdminController no backend). */
@@ -21,6 +24,7 @@ export interface ServiceFormDialogData {
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     MatButtonModule,
     MatProgressSpinnerModule,
   ],
@@ -43,6 +47,7 @@ export class ServiceFormDialog {
       this.data.servico?.sinalPercentual ?? 50,
       [Validators.required, Validators.min(0), Validators.max(100)],
     ],
+    profissionalIds: [this.data.servico?.profissionalIds ?? ([] as number[])],
   });
 
   protected readonly carregando = signal(false);

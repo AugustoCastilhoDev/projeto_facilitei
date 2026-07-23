@@ -22,7 +22,7 @@ public class PublicServiceOfferingController {
     public List<ServiceOfferingResponse> listarAtivos(@PathVariable String slug) {
         Tenant tenant = tenantService.buscarPorSlug(slug);
         return serviceOfferingService.listarAtivos(tenant.getId()).stream()
-                .map(ServiceOfferingResponse::from)
+                .map(service -> ServiceOfferingResponse.from(service, List.of()))
                 .toList();
     }
 

@@ -110,6 +110,7 @@ Pontos que valem a pena mencionar numa entrevista — cada um resolveu um proble
 - **`CANCELADO` existia no enum `PaymentStatus` sem nenhum código usá-lo.** Ao implementar os relatórios, uma "taxa de não comparecimento" real exigia primeiro um jeito de o admin registrar o que de fato aconteceu com a reserva — isso motivou ativar o cancelamento manual (`BookingService.cancelar`) e adicionar a marcação de comparecimento (`Booking.compareceu`), ambos expostos na tela Agenda.
 - **Relatório calculado em memória com Streams, não com uma query SQL `GROUP BY`.** É a primeira agregação do projeto — o volume de reservas confirmadas por tenant/mês é pequeno o bastante (dezenas a poucas centenas) para não justificar a complexidade extra de uma projeção JPQL agregada; um `JOIN FETCH` simples + `Collectors.groupingBy` é mais legível e fácil de testar.
 - **`SlotResponse` ganhou dados de `Booking` sem criar uma associação bidirecional `Slot ↔ Booking`.** Isso criaria acoplamento de entidade cíclico entre os pacotes `scheduling`/`booking` só para exibir cliente/status na agenda do admin. Em vez disso, `SlotAdminController.listarAgenda` busca os slots e os bookings correspondentes separadamente (`BookingService.buscarPorSlotIds`) e faz o merge no próprio controller — camada que já atua como ponto de composição entre pacotes neste projeto (mesmo espírito de `BookingCheckoutService`).
+- **Vínculo N:N Profissional↔Serviço editável dos dois lados, sem tornar a dependência entre pacotes circular.** `Profissional` (pacote `professional`) é o owning side do `@ManyToMany` com `ServiceOffering` (pacote `catalog`); `ProfissionalService` já dependia de `ServiceOfferingService` para validar `servicoIds`. Ao expor o mesmo vínculo editável pela tela de Serviços, `ServiceOfferingService` precisou escrever na coleção `servicos` de cada `Profissional` afetado (mesma transação do create/update do serviço, para manter atomicidade) — mas injeta `ProfissionalRepository`, não `ProfissionalService`, para não fechar um ciclo de bean Spring (que já dependia dele). Na leitura, `ServiceOfferingAdminController` injeta `ProfissionalService` (essa sim) para montar `profissionalIds`/`profissionalNomes` na resposta — composição na camada de controller, mesmo padrão do item anterior.
 
 ## Limitações conhecidas
 
@@ -117,7 +118,6 @@ Pontos que valem a pena mencionar numa entrevista — cada um resolveu um proble
 - **Um único webhook token por tenant, sem rotação**: gerado uma vez na primeira configuração e nunca trocado (mesmo ao atualizar a chave de API) — evita invalidar um webhook já configurado do lado da Asaas, mas também não há como o próprio tenant regenerá-lo pela UI se suspeitar de vazamento.
 - **Um cliente não pode agendar múltiplos serviços numa única reserva/checkout** — decisão consciente de escopo, ver histórico do projeto. O modelo atual é 1 slot = 1 booking.
 - **Expediente do profissional é um único intervalo fixo por dia** (abre/fecha), sem variação por dia da semana nem controle de folgas/férias — gerar horários para um dia específico continua sendo uma ação manual do admin (tela Agenda).
-- **Vincular serviços a um profissional só é possível pela tela "Profissionais"**, não há atalho pela tela "Serviços" para ver/editar quais profissionais realizam aquele serviço.
 - **Webhook validado com túnel público (ngrok) contra a sandbox da Asaas**, incluindo uma reserva real, confirmação de pagamento pelo painel da Asaas e recebimento do evento `PAYMENT_CONFIRMED` pelo backend local — mas ainda não em produção, nem sob carga.
 - **Fuso horário fixo em `America/Sao_Paulo`** — não há suporte a tenants em outros fusos.
 - **CPF/CNPJ é obrigatório no formulário público mesmo quando o serviço não cobra sinal** (a validação está no DTO, não condicionada ao serviço escolhido) — só é estritamente necessário quando uma cobrança Pix de fato será gerada.
@@ -208,7 +208,7 @@ cd backend && mvn test
 cd frontend && ng test --watch=false
 ```
 
-104 testes no backend e 13 suítes no frontend, cobrindo desde regras de negócio isoladas (cálculo de sinal, conflito de horário por profissional, expiração, rate limiting, criptografia de credenciais) até os controllers REST, a integração real com o sandbox da Asaas, o envio de WhatsApp via MyZap e o relatório básico.
+110 testes no backend e 13 suítes no frontend, cobrindo desde regras de negócio isoladas (cálculo de sinal, conflito de horário por profissional, expiração, rate limiting, criptografia de credenciais) até os controllers REST, a integração real com o sandbox da Asaas, o envio de WhatsApp via MyZap e o relatório básico.
 
 O GitHub Actions (`.github/workflows/ci.yml`) roda exatamente esses mesmos comandos — `mvn test` + `mvn package` no backend, `ng test` + `ng build` no frontend — a cada push e pull request para a `main`. Nenhum teste depende de banco de dados real (tudo via `@WebMvcTest`/Mockito ou testes puros de unidade), então o job do backend não precisa subir um Postgres.
 

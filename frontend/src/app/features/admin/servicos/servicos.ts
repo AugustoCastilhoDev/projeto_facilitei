@@ -6,7 +6,9 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
+import { Profissional } from '../../../core/models/profissional.model';
 import { ServiceOffering } from '../../../core/models/service-offering.model';
+import { ProfissionalService } from '../../../core/services/profissional.service';
 import { ServiceOfferingService } from '../../../core/services/service-offering.service';
 import { ServiceFormDialog } from './service-form-dialog/service-form-dialog';
 
@@ -19,19 +21,26 @@ import { ServiceFormDialog } from './service-form-dialog/service-form-dialog';
 })
 export class Servicos {
   private readonly serviceOfferingService = inject(ServiceOfferingService);
+  private readonly profissionalService = inject(ProfissionalService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
 
   protected readonly servicos = signal<ServiceOffering[]>([]);
+  protected readonly profissionais = signal<Profissional[]>([]);
   protected readonly carregando = signal(false);
-  protected readonly colunas = ['nome', 'duracaoMin', 'preco', 'sinalPercentual', 'status', 'acoes'];
+  protected readonly colunas = ['nome', 'duracaoMin', 'preco', 'sinalPercentual', 'profissionais', 'status', 'acoes'];
 
   constructor() {
+    // So profissionais ativos podem ser vinculados a um servico (nao faz sentido vincular um profissional desativado).
+    this.profissionalService.listar().subscribe((profissionais) => this.profissionais.set(profissionais.filter((p) => p.ativo)));
     this.carregar();
   }
 
   protected novoServico(): void {
-    const ref = this.dialog.open(ServiceFormDialog, { width: '420px', data: { servico: null } });
+    const ref = this.dialog.open(ServiceFormDialog, {
+      width: '420px',
+      data: { servico: null, profissionais: this.profissionais() },
+    });
     ref.afterClosed().subscribe((salvo) => {
       if (salvo) {
         this.snackBar.open('Servico salvo com sucesso.', 'Fechar', { duration: 3000 });
@@ -41,7 +50,10 @@ export class Servicos {
   }
 
   protected editarServico(servico: ServiceOffering): void {
-    const ref = this.dialog.open(ServiceFormDialog, { width: '420px', data: { servico } });
+    const ref = this.dialog.open(ServiceFormDialog, {
+      width: '420px',
+      data: { servico, profissionais: this.profissionais() },
+    });
     ref.afterClosed().subscribe((salvo) => {
       if (salvo) {
         this.snackBar.open('Servico salvo com sucesso.', 'Fechar', { duration: 3000 });
