@@ -20,8 +20,9 @@ facilitei:
     api-key: COLE_AQUI_A_CHAVE_FIXA_MZ
   notification:
     provider: console
-  # Opcional: crie uma conta gratuita em sentry.io e cole o DSN do projeto
-  # aqui para testar o monitoramento de erros localmente. Deixe em branco
-  # (default) para o Sentry ficar desativado.
+  # Opcional: crie uma conta gratuita em app.glitchtip.com (compativel com o
+  # protocolo/SDK do Sentry - o codigo usa io.sentry:sentry sem nenhuma
+  # mudanca) e cole o DSN do projeto aqui para testar o monitoramento de
+  # erros localmente. Deixe em branco (default) para ficar desativado.
   sentry:
-    dsn: COLE_AQUI_O_DSN_DO_SENTRY
+    dsn: COLE_AQUI_O_DSN_DO_GLITCHTIP
