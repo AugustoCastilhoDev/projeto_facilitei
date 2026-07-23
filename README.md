@@ -14,7 +14,7 @@ Projeto construído como portfólio técnico, documentando as decisões de arqui
 | Banco de dados | PostgreSQL 17 |
 | Frontend | Angular 22 (standalone components, Signals), Angular Material 3 |
 | Pagamento | Asaas — cobrança Pix, modelo "traga sua própria conta" (BYOPP): cada tenant usa a própria chave de API |
-| Notificação | Abstração própria (`NotificationService`), implementação atual é um mock de console — WhatsApp real fica para uma iteração futura |
+| Notificação | Abstração própria (`NotificationService`) — WhatsApp real via [MyZap](https://www.myzap.net) (provedor não-oficial) ou mock de console, alternável por config |
 
 As versões foram escolhidas pelas mais atuais estáveis no momento do desenvolvimento, não pelas mais populares/antigas — Spring Boot 4 e Angular 22 trouxeram mudanças de modularização (ver seção de decisões técnicas) que exigiram ajustes não documentados nos tutoriais mais comuns da internet.
 
@@ -32,11 +32,11 @@ backend/src/main/java/com/castilhodigital/facilitei/
 ├── scheduling/     # Slot (por profissional), geração automática de horários, agenda admin/pública
 ├── booking/        # Reserva do cliente final, checkout, expiração automática
 ├── payment/        # Porta PaymentGatewayService + implementação payment/asaas
-├── notification/   # Porta NotificationService + implementação console (mock)
+├── notification/   # Porta NotificationService + implementações console (mock) e notification/myzap (WhatsApp real)
 └── common/         # Config transversal (segurança, exceptions, ProblemDetail, scheduling, crypto)
 ```
 
-**Ports-and-adapters** para as duas integrações externas: `PaymentGatewayService` e `NotificationService` são interfaces; o domínio (`BookingCheckoutService`, `BookingService`) não sabe que o provedor de pagamento é a Asaas nem que a notificação por enquanto só loga no console. Trocar de gateway de pagamento ou plugar WhatsApp de verdade não exige mudar nada fora do respectivo pacote `payment.asaas` / `notification`.
+**Ports-and-adapters** para as duas integrações externas: `PaymentGatewayService` e `NotificationService` são interfaces; o domínio (`BookingCheckoutService`, `BookingService`) não sabe que o provedor de pagamento é a Asaas nem qual implementação de notificação está ativa. Trocar de gateway de pagamento, ou entre o mock de console e o WhatsApp real via MyZap (`facilitei.notification.provider=console|myzap`), não exige mudar nada fora do respectivo pacote `payment.asaas` / `notification`.
 
 ### Frontend — feature-based, standalone components
 
@@ -104,6 +104,8 @@ Pontos que valem a pena mencionar numa entrevista — cada um resolveu um proble
 - **Chave Asaas por tenant, cifrada via `AttributeConverter`, não manualmente antes de salvar.** `EncryptedStringConverter` cifra/decifra de forma transparente no próprio mapeamento JPA (`@Convert`) — a entidade sempre trabalha com o texto plano em memória, só a coluna no banco fica cifrada. O conversor é registrado como bean Spring (`@Component`), não instanciado via reflection pelo Hibernate, para poder injetar o `TextEncryptor` — o Spring Boot já configura o Hibernate para resolver conversores assim.
 - **Identificar o tenant pelo pagamento antes de autenticar o webhook, não depois.** Com uma chave/token só por conta Asaas (modelo BYOPP), não existe mais um segredo único global para comparar. A solução inverte a ordem: busca a reserva pelo `asaasPaymentId` (globalmente único), pega o tenant dono dela, e só então valida o token contra o segredo daquele tenant específico — descoberto durante a implementação que essa consulta precisa de `JOIN FETCH` explícito (`slot` + `tenant`), porque o controller acessa o tenant fora da transação onde a reserva foi buscada (`LazyInitializationException` real, pego em teste manual, não só em teoria).
 - **O mesmo bug de `LazyInitializationException` reapareceu numa coleção `@ManyToMany` (`Profissional.servicos`).** Ao expor `ProfissionalResponse.from()` (que lê `profissional.getServicos()`) fora da transação, o padrão de fetch explícito precisou ser aplicado de novo — mas dessa vez com um cuidado a mais: os métodos que **filtram** por serviço (`findByTenantIdAndServicosIdAndAtivoTrueOrderByNome`) não podem usar o mesmo `JOIN` tanto para o filtro quanto para o `FETCH` da coleção, senão a coleção carregada fica incompleta (só o item que bateu no filtro). A solução usa um `LEFT JOIN FETCH` sem condição para trazer a coleção inteira, e um `EXISTS` subquery separado só para o filtro. Nenhum dos 4 testes automatizados do `ProfissionalService`/controllers pegou isso (mockam o repositório) — só apareceu ao testar manualmente o CRUD de profissionais na UI, reforçando por que essa etapa nunca é pulada neste projeto.
+- **Falha no envio de WhatsApp nunca pode derrubar a reserva.** `BookingService.criarReserva`/`confirmarPagamento`/etc. chamam `NotificationService.enviar()` dentro do mesmo `@Transactional` que grava o booking/slot — se a exceção subisse, uma instabilidade momentânea do MyZap faria a reserva inteira sofrer rollback por causa de um efeito colateral (notificar o cliente), não da regra de negócio em si. `MyZapNotificationService` captura qualquer falha do `MyZapClient` e só loga (best effort), nunca relança.
+- **Chave do MyZap é única da plataforma, não por tenant (diferente do modelo BYOPP da Asaas).** O envio de WhatsApp sai de uma única conta/número da Facilitei — não há (ainda) isolamento por tenant nessa integração, então a chave é um header fixo do `RestClient` (`MyZapConfig`), configurada uma vez via `facilitei.myzap.api-key`, ao contrário do `access_token` da Asaas que é passado por chamada.
 
 ## Limitações conhecidas
 
@@ -115,6 +117,8 @@ Pontos que valem a pena mencionar numa entrevista — cada um resolveu um proble
 - **Webhook validado com túnel público (ngrok) contra a sandbox da Asaas**, incluindo uma reserva real, confirmação de pagamento pelo painel da Asaas e recebimento do evento `PAYMENT_CONFIRMED` pelo backend local — mas ainda não em produção, nem sob carga.
 - **Fuso horário fixo em `America/Sao_Paulo`** — não há suporte a tenants em outros fusos.
 - **CPF/CNPJ é obrigatório no formulário público mesmo quando o serviço não cobra sinal** (a validação está no DTO, não condicionada ao serviço escolhido) — só é estritamente necessário quando uma cobrança Pix de fato será gerada.
+- **WhatsApp via MyZap é um provedor não-oficial** (automação sobre o WhatsApp Web/multi-dispositivo, não a Cloud API da Meta) — mais simples de configurar (sem verificação de empresa nem aprovação de template), mas o número usado corre o risco de ser suspenso pela Meta a qualquer momento, por estar fora dos termos de uso oficiais do WhatsApp.
+- **Notificação por WhatsApp sai de uma única conta/número da plataforma**, não por tenant — todo negócio que usa o Facilitei hoje compartilha o mesmo remetente.
 
 ## Como rodar localmente
 
@@ -139,6 +143,8 @@ cp backend/src/main/resources/application-local.yml.example backend/src/main/res
 ```
 
 Esse arquivo está no `.gitignore` — nunca será commitado. Para testar a geração real de um Pix pelo tenant, use uma chave sandbox da Asaas na tela "Pagamentos" do painel (ver [`docs/configurar-pagamentos.md`](docs/configurar-pagamentos.md)).
+
+O mesmo `application-local.yml` também tem a chave do **MyZap** (WhatsApp), com `facilitei.notification.provider` como `console` (default, só loga) ou `myzap` (envia de verdade). Sem uma conta MyZap configurada, deixe em `console`.
 
 ### 3. Subir o backend
 
@@ -196,7 +202,7 @@ cd backend && mvn test
 cd frontend && ng test --watch=false
 ```
 
-80 testes no backend e 12 suítes no frontend, cobrindo desde regras de negócio isoladas (cálculo de sinal, conflito de horário por profissional, expiração, rate limiting, criptografia de credenciais) até os controllers REST e a integração real com o sandbox da Asaas.
+84 testes no backend e 12 suítes no frontend, cobrindo desde regras de negócio isoladas (cálculo de sinal, conflito de horário por profissional, expiração, rate limiting, criptografia de credenciais) até os controllers REST, a integração real com o sandbox da Asaas e o envio de WhatsApp via MyZap.
 
 O GitHub Actions (`.github/workflows/ci.yml`) roda exatamente esses mesmos comandos — `mvn test` + `mvn package` no backend, `ng test` + `ng build` no frontend — a cada push e pull request para a `main`. Nenhum teste depende de banco de dados real (tudo via `@WebMvcTest`/Mockito ou testes puros de unidade), então o job do backend não precisa subir um Postgres.
 

@@ -2,7 +2,7 @@
 
 > Como usar: marque `[x]` conforme for concluindo cada item. Sinta-se livre para editar, reordenar, adicionar notas/datas ou remover itens que deixarem de fazer sentido — este documento é vivo, não um contrato fechado.
 
-O que existe hoje é uma base técnica sólida (agendamento multi-tenant com múltiplos profissionais por negócio, sinal via Pix, painel admin, onboarding self-service, ~95 testes automatizados). O sinal já cai direto na conta Asaas de cada negócio (modelo "traga sua própria conta de pagamento" — BYOPP, ver README) — decisão tomada no lugar do split/marketplace originalmente cogitado, porque não exige formalização prévia com a Asaas nem custodia dinheiro de terceiros. Uma minuta de Termos de Uso/Política de Privacidade já foi escrita (`docs/`), pendente de revisão profissional. O que ainda falta para vender de verdade não é código — é fechar esse jurídico com um profissional e decidir onde hospedar em produção.
+O que existe hoje é uma base técnica sólida (agendamento multi-tenant com múltiplos profissionais por negócio, sinal via Pix, WhatsApp real via MyZap, painel admin, onboarding self-service, ~96 testes automatizados). O sinal já cai direto na conta Asaas de cada negócio (modelo "traga sua própria conta de pagamento" — BYOPP, ver README) — decisão tomada no lugar do split/marketplace originalmente cogitado, porque não exige formalização prévia com a Asaas nem custodia dinheiro de terceiros. Uma minuta de Termos de Uso/Política de Privacidade já foi escrita (`docs/`), pendente de revisão profissional. O que ainda falta para vender de verdade não é código — é fechar esse jurídico com um profissional e decidir onde hospedar em produção.
 
 Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto).
 
@@ -18,7 +18,7 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 | Sem cobrança pela assinatura do SaaS | Billing recorrente, planos e trial |
 | Roda só localmente (docker compose) | Deploy em produção, com monitoramento |
 | ~~Sem Termos de Uso nem Política de Privacidade~~ Minuta escrita, pendente revisão profissional ✅ | LGPD tratada, contrato entre plataforma e negócio |
-| Notificação = log no console | WhatsApp de verdade, via API oficial |
+| ~~Notificação = log no console~~ WhatsApp real via MyZap (não-oficial) ✅ | Avaliar migrar para a API oficial da Meta se o número usado for suspenso |
 
 ---
 
@@ -52,7 +52,7 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 
 ### Produto
 - [x] Suporte a múltiplos profissionais/recursos por negócio — cada profissional com expediente próprio e seus próprios serviços vinculados (N:N); conflito de horário passou a ser escopado por profissional, não mais por tenant inteiro
-- [ ] WhatsApp real via API oficial (Meta Cloud API, Twilio ou Zenvia), substituindo o mock de console
+- [x] WhatsApp real substituindo o mock de console — via [MyZap](https://www.myzap.net), um provedor não-oficial (automação sobre WhatsApp Web, não a Cloud API da Meta); mais simples e rápido de configurar que a API oficial, mas com risco de o número ser suspenso pela Meta a qualquer momento; alternável para o mock via `facilitei.notification.provider`
 - [ ] Cobrança da própria assinatura SaaS — planos, período de teste, cancelamento
 - [ ] Relatórios básicos para o dono do negócio: faturamento do período, taxa de não comparecimento, clientes recorrentes
 

@@ -43,6 +43,21 @@ facilitei:
     # nao esta aqui - ver modelo BYOPP no README/ROADMAP.
     api-key: ${ASAAS_API_KEY:}
 
+  notification:
+    # "console" (default, so loga) ou "myzap" (envia WhatsApp de verdade
+    # via MyZap - ver notification.myzap.MyZapNotificationService).
+    provider: ${NOTIFICATION_PROVIDER:console}
+
+  myzap:
+    # https://api.myzap.net/api/v1 confirmado no OpenAPI oficial do MyZap -
+    # os endpoints de conta (auth/registrar, auth/login, chaves/fixa) usam
+    # /api (sem /v1), mas os de uso (mensagens, conversas, contatos,
+    # webhooks) usam /api/v1.
+    base-url: ${MYZAP_BASE_URL:https://api.myzap.net/api/v1}
+    # Chave fixa da conta (obtida via login + GET /api/chaves/fixa no
+    # painel). So e usada quando notification.provider=myzap.
+    api-key: ${MYZAP_API_KEY:}
+
   security:
     # Cifra em repouso a chave Asaas de cada tenant (ver common.crypto).
     # Em producao AMBOS devem vir de variavel de ambiente/secret manager -

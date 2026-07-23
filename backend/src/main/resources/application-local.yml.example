@@ -8,3 +8,11 @@
 facilitei:
   asaas:
     api-key: COLE_AQUI_SUA_CHAVE_SANDBOX_DO_ASAAS
+  # Para ativar o envio real de WhatsApp via MyZap: cole a "chave fixa"
+  # (mz_...) obtida em Login + GET /api/chaves/fixa no painel do MyZap, e
+  # troque notification.provider para "myzap". Deixe "console" (default) se
+  # so quiser ver a notificacao logada no terminal do backend.
+  myzap:
+    api-key: COLE_AQUI_A_CHAVE_FIXA_MZ
+  notification:
+    provider: console
