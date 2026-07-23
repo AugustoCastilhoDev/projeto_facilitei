@@ -20,3 +20,8 @@ facilitei:
     api-key: COLE_AQUI_A_CHAVE_FIXA_MZ
   notification:
     provider: console
+  # Opcional: crie uma conta gratuita em sentry.io e cole o DSN do projeto
+  # aqui para testar o monitoramento de erros localmente. Deixe em branco
+  # (default) para o Sentry ficar desativado.
+  sentry:
+    dsn: COLE_AQUI_O_DSN_DO_SENTRY

@@ -2,7 +2,7 @@
 
 > Como usar: marque `[x]` conforme for concluindo cada item. Sinta-se livre para editar, reordenar, adicionar notas/datas ou remover itens que deixarem de fazer sentido — este documento é vivo, não um contrato fechado.
 
-O que existe hoje é uma base técnica sólida (agendamento multi-tenant com múltiplos profissionais por negócio, vínculo serviço↔profissional editável dos dois lados, sinal via Pix, WhatsApp real via MyZap, relatórios básicos, cobrança automática da própria assinatura SaaS com planos e trial, painel admin, onboarding self-service, ~147 testes automatizados). O sinal já cai direto na conta Asaas de cada negócio (modelo "traga sua própria conta de pagamento" — BYOPP, ver README) — decisão tomada no lugar do split/marketplace originalmente cogitado, porque não exige formalização prévia com a Asaas nem custodia dinheiro de terceiros. A mensalidade da Facilitei em si (diferente do sinal) usa a chave Asaas da própria plataforma. Uma minuta de Termos de Uso/Política de Privacidade já foi escrita (`docs/`), pendente de revisão profissional. O que ainda falta para vender de verdade não é código — é fechar esse jurídico com um profissional e decidir onde hospedar em produção.
+O que existe hoje é uma base técnica sólida (agendamento multi-tenant com múltiplos profissionais por negócio, vínculo serviço↔profissional editável dos dois lados, sinal via Pix, WhatsApp real via MyZap, relatórios básicos, cobrança automática da própria assinatura SaaS com planos e trial, observabilidade básica (correlation id, Sentry, health check), painel admin, onboarding self-service, ~152 testes automatizados). O sinal já cai direto na conta Asaas de cada negócio (modelo "traga sua própria conta de pagamento" — BYOPP, ver README) — decisão tomada no lugar do split/marketplace originalmente cogitado, porque não exige formalização prévia com a Asaas nem custodia dinheiro de terceiros. A mensalidade da Facilitei em si (diferente do sinal) usa a chave Asaas da própria plataforma. Uma minuta de Termos de Uso/Política de Privacidade já foi escrita (`docs/`), pendente de revisão profissional. O que ainda falta para vender de verdade não é código — é fechar esse jurídico com um profissional e decidir onde hospedar em produção.
 
 Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto).
 
@@ -59,7 +59,7 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 
 ### Infraestrutura
 - [x] CI/CD — build e testes automáticos a cada push
-- [ ] Observabilidade: logs estruturados, monitoramento de erro (ex.: Sentry), alerta de indisponibilidade
+- [x] Observabilidade: logs estruturados (suporte nativo do Spring Boot 4, `logging.structured.format.console`) + correlation id por requisição, monitoramento de erro via Sentry (SDK core, DSN vazio por padrão até uma conta ser criada) — falta só o "alerta" de fato (`/actuator/health` já existe, mas disparar notificação de indisponibilidade real só faz sentido quando houver deploy em produção, ver item abaixo)
 - [x] Testes end-to-end do fluxo completo (Playwright/Cypress), não só unitários — rodando localmente; ainda não integrado ao CI (exigiria Postgres + backend real no workflow)
 
 ### Jurídico & financeiro

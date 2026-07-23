@@ -18,6 +18,9 @@ import org.springframework.security.web.SecurityFilterChain;
  * - /api/webhooks/** tambem fica fora do JWT: quem chama e o Asaas, nao um
  *   usuario do sistema. A autenticidade e validada dentro do proprio
  *   controller via o header "asaas-access-token" (etapa 6).
+ * - /actuator/health/** fica aberto de proposito: e o endpoint que um
+ *   servico de uptime externo (ex.: UptimeRobot) vai chamar sem JWT quando
+ *   houver deploy em producao.
  * - /api/admin/** exige um JWT valido com role ADMIN.
  * - Sessao stateless: cada request carrega seu proprio JWT, sem estado de
  *   sessao no servidor (pre-requisito para escalar horizontalmente sem
@@ -40,7 +43,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/api/public/**", "/api/webhooks/**", "/error").permitAll()
+                        .requestMatchers(
+                                "/api/auth/**", "/api/public/**", "/api/webhooks/**", "/error", "/actuator/health/**")
+                        .permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2

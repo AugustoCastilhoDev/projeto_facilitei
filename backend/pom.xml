@@ -92,6 +92,28 @@
             <artifactId>spring-boot-starter-restclient</artifactId>
         </dependency>
 
+        <!-- Observabilidade: health check (/actuator/health) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!--
+            Observabilidade: monitoramento de erros (Sentry). Usamos o SDK
+            core (io.sentry:sentry), nao o starter oficial do Spring Boot
+            (sentry-spring-boot-starter-jakarta): esse starter ainda nao tem
+            suporte confirmado a Spring Boot 4.1/Spring Framework 7 (mesmo
+            risco de dependencia transitiva quebrada que ja fez este projeto
+            preferir o JWT nativo do Spring Security a jjwt, ver README). O
+            SDK core e agnostico de versao de framework - inicializacao e
+            captura ficam manuais (poucas linhas), sem autoconfig.
+        -->
+        <dependency>
+            <groupId>io.sentry</groupId>
+            <artifactId>sentry</artifactId>
+            <version>8.16.0</version>
+        </dependency>
+
         <!-- Boilerplate -->
         <dependency>
             <groupId>org.projectlombok</groupId>

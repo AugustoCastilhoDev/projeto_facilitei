@@ -35,7 +35,7 @@ backend/src/main/java/com/castilhodigital/facilitei/
 ├── notification/   # Porta NotificationService + implementações console (mock) e notification/myzap (WhatsApp real)
 ├── report/         # Relatório básico (faturamento, taxa de não comparecimento, clientes recorrentes)
 ├── billing/        # Assinatura do PRÓPRIO tenant com a plataforma (planos, trial, fatura Pix, cancelamento)
-└── common/         # Config transversal (segurança, exceptions, ProblemDetail, scheduling, crypto)
+└── common/         # Config transversal (segurança, exceptions, ProblemDetail, scheduling, crypto, observability)
 ```
 
 **Ports-and-adapters** para as duas integrações externas: `PaymentGatewayService` e `NotificationService` são interfaces; o domínio (`BookingCheckoutService`, `BookingService`) não sabe que o provedor de pagamento é a Asaas nem qual implementação de notificação está ativa. Trocar de gateway de pagamento, ou entre o mock de console e o WhatsApp real via MyZap (`facilitei.notification.provider=console|myzap`), não exige mudar nada fora do respectivo pacote `payment.asaas` / `notification`.
@@ -71,6 +71,13 @@ A plataforma nunca guarda nem intermedia o dinheiro do sinal: cada tenant config
 Como cada tenant tem sua própria conta Asaas, o webhook (`AsaasWebhookController`) não pode mais validar contra um segredo único e global: ele primeiro descobre de qual tenant é o evento — buscando a reserva pelo `asaasPaymentId` recebido (sempre globalmente único na Asaas) — e só então compara o token recebido contra o `asaasWebhookToken` daquele tenant especificamente, gerado pela própria plataforma na primeira configuração.
 
 Ver o tutorial completo (para o dono do negócio) em [`docs/configurar-pagamentos.md`](docs/configurar-pagamentos.md).
+
+### Observabilidade
+
+- **Correlation id por requisição** (`RequestCorrelationFilter`): gera (ou reaproveita, se o cliente já mandar) um `X-Request-Id`, disponível no `MDC` durante toda a requisição — aparece em todo log daquela requisição (`logging.pattern.console`) e é devolvido no header de resposta, permitindo juntar as linhas de um mesmo request mesmo com múltiplas threads concorrentes.
+- **Logs estruturados em JSON, sem dependência nova**: o Spring Boot 4 já traz suporte nativo (`logging.structured.format.console=ecs|logstash|gelf`), sobrescrevível por variável de ambiente (`LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs`) sem precisar declarar nada no `.yml` com antecedência. Não ativado por padrão localmente (texto plano é mais fácil de acompanhar durante teste manual) — é algo a ligar no deploy, quando houver um agregador de log (ELK, Datadog etc.) do outro lado.
+- **Monitoramento de erros via Sentry** (`common.observability.SentryConfig`): inicialização manual do SDK **core** (`io.sentry:sentry`), não o starter oficial do Spring Boot — na época da implementação esse starter ainda não tinha suporte confirmado a Spring Boot 4.1/Spring Framework 7 (mesmo risco de dependência transitiva quebrada que já fez este projeto preferir o JWT nativo do Spring Security a `jjwt`). Sem DSN configurado (`facilitei.sentry.dsn`), o SDK simplesmente não inicializa e `Sentry.captureException(...)` vira um no-op seguro em qualquer lugar do código.
+- **`/actuator/health`** (Spring Boot Actuator, liberado no `SecurityConfig` sem exigir JWT): verifica a conectividade com o Postgres automaticamente. Ainda não há um alerta de verdade (disparando notificação) porque não há deploy em produção — o endpoint existe para, quando houver, ser consumido por um serviço de uptime externo (UptimeRobot, Better Uptime etc.).
 
 ## Modelo de dados
 
@@ -116,6 +123,7 @@ Pontos que valem a pena mencionar numa entrevista — cada um resolveu um proble
 - **Webhook da assinatura é um endpoint separado do webhook do BYOPP**, mesmo os dois batendo na mesma API da Asaas. O BYOPP identifica o tenant pelo pagamento recebido e valida um token *por tenant* (uma conta Asaas por negócio); a assinatura tem uma única conta Asaas (a da própria plataforma), então não faz sentido o mecanismo por-tenant — `/api/webhooks/asaas-assinatura` valida um único token fixo de plataforma (`facilitei.asaas.webhook-token`).
 - **Bloqueio de assinatura pendente/cancelada é deliberadamente "leve".** `AssinaturaGuard` só trava ações que aumentam o uso (gerar horários, criar profissional) — login, relatórios e o pagamento da própria fatura continuam liberados. A alternativa (bloquear o login inteiro) foi descartada por impedir o próprio dono de regularizar o pagamento.
 - **Tenants criados antes desta feature foram "grandfathered" como `ATIVA`, sem trial.** A migration `V11` seta o default `assinatura_status = 'ATIVA'` na coluna nova — só tenants novos, criados via `RegistrationService`, entram como `TRIAL` com `trialAte` preenchido. Isso evita bloquear retroativamente negócios já em uso.
+- **`GlobalExceptionHandler` passou a estender `ResponseEntityExceptionHandler` para ganhar um catch-all de erro genérico sem quebrar o tratamento default do Spring MVC.** A primeira tentativa (um `@ExceptionHandler(Exception.class)` avulso) capturava exceções de infraestrutura do próprio framework (`MissingServletRequestParameterException`, JSON malformado) *antes* do resolvedor default conseguir traduzi-las para o 400 esperado — viraram 500 incorretamente, pego rodando a suíte de testes (`PublicSlotControllerTest`/`PublicProfissionalControllerTest` passaram a falhar). A correção não foi "excluir tipos manualmente", e sim estender `ResponseEntityExceptionHandler` (que já sabe tratar essas exceções de framework) e sobrescrever apenas o método protegido `handleMethodArgumentNotValid` (não redeclarar um `@ExceptionHandler` para o mesmo tipo — isso gera "Ambiguous @ExceptionHandler" na inicialização, outro erro real encontrado no processo) — o catch-all genérico (`RuntimeException`) só é escolhido pelo Spring quando nenhum handler mais específico, nem o nosso nem o herdado, casar com o tipo exato da exceção.
 
 ## Limitações conhecidas
 
@@ -215,7 +223,7 @@ cd backend && mvn test
 cd frontend && ng test --watch=false
 ```
 
-133 testes no backend e 14 suítes no frontend, cobrindo desde regras de negócio isoladas (cálculo de sinal, conflito de horário por profissional, expiração, rate limiting, criptografia de credenciais) até os controllers REST, a integração real com o sandbox da Asaas, o envio de WhatsApp via MyZap, o relatório básico e a cobrança da assinatura SaaS.
+138 testes no backend e 14 suítes no frontend, cobrindo desde regras de negócio isoladas (cálculo de sinal, conflito de horário por profissional, expiração, rate limiting, criptografia de credenciais) até os controllers REST, a integração real com o sandbox da Asaas, o envio de WhatsApp via MyZap, o relatório básico, a cobrança da assinatura SaaS e a observabilidade (correlation id, tratamento de erro genérico).
 
 O GitHub Actions (`.github/workflows/ci.yml`) roda exatamente esses mesmos comandos — `mvn test` + `mvn package` no backend, `ng test` + `ng build` no frontend — a cada push e pull request para a `main`. Nenhum teste depende de banco de dados real (tudo via `@WebMvcTest`/Mockito ou testes puros de unidade), então o job do backend não precisa subir um Postgres.
 

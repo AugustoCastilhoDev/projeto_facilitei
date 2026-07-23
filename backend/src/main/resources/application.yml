@@ -69,6 +69,22 @@ facilitei:
     credentials-encryption-key: ${CREDENTIALS_ENCRYPTION_KEY:facilitei-local-dev-encryption-key-troque-em-producao}
     credentials-encryption-salt: ${CREDENTIALS_ENCRYPTION_SALT:deadbeefcafe0123}
 
+  sentry:
+    # Monitoramento de erros (common.observability.SentryConfig). Vazio por
+    # padrao - o Sentry so inicializa se um DSN real for configurado (crie
+    # uma conta gratuita em sentry.io e cole em application-local.yml ou na
+    # variavel de ambiente SENTRY_DSN).
+    dsn: ${SENTRY_DSN:}
+    environment: ${SENTRY_ENVIRONMENT:local}
+
 logging:
   level:
     com.castilhodigital.facilitei: DEBUG
+  pattern:
+    # Mesmo padrao default do Spring Boot, com o requestId (MDC, ver
+    # common.observability.RequestCorrelationFilter) inserido apos a thread -
+    # junta todas as linhas de log de uma mesma requisicao. Em producao,
+    # setar LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs (ou logstash/gelf) troca
+    # para logging estruturado em JSON (suporte nativo do Spring Boot 4,
+    # zero dependencia nova) - o MDC entra automaticamente como contexto.
+    console: "%clr(%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr([%15.15t]){faint} %clr([%X{requestId}]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"
