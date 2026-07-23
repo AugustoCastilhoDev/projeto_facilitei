@@ -44,6 +44,8 @@
             <th>Servico</th>
             <th>Profissional</th>
             <th>Status</th>
+            <th>Cliente</th>
+            <th>Acoes</th>
           </tr>
         </thead>
         <tbody>
@@ -54,6 +56,31 @@
               <td>{{ slot.profissionalNome }}</td>
               <td>
                 <span class="status-chip" [class]="'status-' + slot.status.toLowerCase()">{{ slot.status }}</span>
+              </td>
+              <td>
+                @if (slot.bookingId) {
+                  {{ slot.clienteNome }} ({{ slot.clienteTelefone }})
+                  @if (slot.compareceu === true) {
+                    <span class="status-chip status-compareceu">Compareceu</span>
+                  } @else if (slot.compareceu === false) {
+                    <span class="status-chip status-nao-compareceu">Nao compareceu</span>
+                  }
+                }
+              </td>
+              <td class="celula-acoes">
+                @if (podeMarcarComparecimento(slot)) {
+                  <button mat-icon-button aria-label="Compareceu" title="Compareceu" (click)="marcarComparecimento(slot, true)">
+                    <mat-icon>check_circle</mat-icon>
+                  </button>
+                  <button mat-icon-button aria-label="Nao compareceu" title="Nao compareceu" (click)="marcarComparecimento(slot, false)">
+                    <mat-icon>cancel</mat-icon>
+                  </button>
+                }
+                @if (podeCancelar(slot)) {
+                  <button mat-icon-button aria-label="Cancelar reserva" title="Cancelar reserva" (click)="cancelarReserva(slot)">
+                    <mat-icon>event_busy</mat-icon>
+                  </button>
+                }
               </td>
             </tr>
           }

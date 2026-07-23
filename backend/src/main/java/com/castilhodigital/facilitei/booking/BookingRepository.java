@@ -24,6 +24,12 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     /** Usado pela pagina publica para consultar o status do pagamento, validando que a reserva e deste tenant. */
     Optional<Booking> findByIdAndSlot_Tenant_Slug(Long id, String slug);
 
+    /** Mesma ideia acima, mas para o lado admin (tenantId em vez de slug) - usado por comparecimento/cancelamento. */
+    Optional<Booking> findByIdAndSlot_Tenant_Id(Long id, Long tenantId);
+
+    /** Usado para enriquecer a agenda do admin com dados do cliente sem precisar de associacao bidirecional Slot->Booking. */
+    List<Booking> findBySlotIdIn(List<Long> slotIds);
+
     /**
      * Reservas pendentes cujo horario do slot esta a "limite" de distancia
      * ou ja passou - usado por BookingExpirationScheduler para expirar
@@ -31,5 +37,16 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
      * vencimento por dia da Asaas nao tem essa precisao).
      */
     List<Booking> findByStatusPagamentoAndSlot_DataHoraLessThanEqual(PaymentStatus statusPagamento, OffsetDateTime limite);
+
+    /**
+     * Reservas confirmadas (PAGO/SEM_SINAL) do tenant num periodo, usadas
+     * pelo relatorio (faturamento, taxa de nao comparecimento, clientes
+     * recorrentes). JOIN FETCH em slot+service porque o calculo precisa do
+     * preco do servico e da data do slot fora da transacao original.
+     */
+    @Query("SELECT b FROM Booking b JOIN FETCH b.slot s JOIN FETCH s.service "
+            + "WHERE s.tenant.id = :tenantId AND s.dataHora BETWEEN :inicio AND :fim AND b.statusPagamento IN :statuses")
+    List<Booking> findParaRelatorio(@Param("tenantId") Long tenantId, @Param("statuses") List<PaymentStatus> statuses,
+                                     @Param("inicio") OffsetDateTime inicio, @Param("fim") OffsetDateTime fim);
 
 }

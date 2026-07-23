@@ -1,8 +1,11 @@
 package com.castilhodigital.facilitei.scheduling;
 
 import com.castilhodigital.facilitei.auth.TenantSecurityGuard;
+import com.castilhodigital.facilitei.booking.Booking;
+import com.castilhodigital.facilitei.booking.BookingService;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -27,6 +30,7 @@ public class SlotAdminController {
 
     private final SlotGenerationService slotGenerationService;
     private final SlotService slotService;
+    private final BookingService bookingService;
     private final TenantSecurityGuard tenantSecurityGuard;
 
     @PostMapping("/services/{serviceId}/slots/gerar")
@@ -46,8 +50,10 @@ public class SlotAdminController {
                                             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
                                             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim) {
         tenantSecurityGuard.verificarAcessoAoTenant(tenantId);
-        return slotService.listarAgendaPorTenant(tenantId, profissionalId, inicio, fim).stream()
-                .map(SlotResponse::from)
+        List<Slot> slots = slotService.listarAgendaPorTenant(tenantId, profissionalId, inicio, fim);
+        Map<Long, Booking> bookingsPorSlotId = bookingService.buscarPorSlotIds(slots.stream().map(Slot::getId).toList());
+        return slots.stream()
+                .map(slot -> SlotResponse.from(slot, bookingsPorSlotId.get(slot.getId())))
                 .toList();
     }
 

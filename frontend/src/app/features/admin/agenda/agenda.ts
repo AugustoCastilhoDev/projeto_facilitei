@@ -10,6 +10,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Profissional } from '../../../core/models/profissional.model';
 import { ServiceOffering } from '../../../core/models/service-offering.model';
 import { Slot } from '../../../core/models/slot.model';
+import { BookingAdminService } from '../../../core/services/booking-admin.service';
 import { ProfissionalService } from '../../../core/services/profissional.service';
 import { ServiceOfferingService } from '../../../core/services/service-offering.service';
 import { SlotService } from '../../../core/services/slot.service';
@@ -92,6 +93,7 @@ export class Agenda {
   private readonly slotService = inject(SlotService);
   private readonly serviceOfferingService = inject(ServiceOfferingService);
   private readonly profissionalService = inject(ProfissionalService);
+  private readonly bookingAdminService = inject(BookingAdminService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
 
@@ -145,6 +147,48 @@ export class Agenda {
         this.snackBar.open('Horarios gerados com sucesso.', 'Fechar', { duration: 3000 });
         this.carregar();
       }
+    });
+  }
+
+  /** So reservas ainda ativas fazem sentido cancelar - uma ja cancelada/expirada nao tem mais o que desfazer. */
+  protected podeCancelar(slot: Slot): boolean {
+    return (
+      slot.statusReserva === 'PENDENTE' || slot.statusReserva === 'PAGO' || slot.statusReserva === 'SEM_SINAL'
+    );
+  }
+
+  /** So reservas confirmadas (o compromisso de fato aconteceria) fazem sentido marcar comparecimento. */
+  protected podeMarcarComparecimento(slot: Slot): boolean {
+    return slot.statusReserva === 'PAGO' || slot.statusReserva === 'SEM_SINAL';
+  }
+
+  protected cancelarReserva(slot: Slot): void {
+    if (!slot.bookingId || !confirm(`Cancelar a reserva de "${slot.clienteNome}"?`)) {
+      return;
+    }
+
+    this.bookingAdminService.cancelar(slot.bookingId).subscribe({
+      next: () => {
+        this.snackBar.open('Reserva cancelada.', 'Fechar', { duration: 3000 });
+        this.carregar();
+      },
+      error: () => this.snackBar.open('Erro ao cancelar a reserva.', 'Fechar', { duration: 4000 }),
+    });
+  }
+
+  protected marcarComparecimento(slot: Slot, compareceu: boolean): void {
+    if (!slot.bookingId) {
+      return;
+    }
+
+    this.bookingAdminService.marcarComparecimento(slot.bookingId, compareceu).subscribe({
+      next: () => {
+        this.snackBar.open(compareceu ? 'Marcado como compareceu.' : 'Marcado como nao compareceu.', 'Fechar', {
+          duration: 3000,
+        });
+        this.carregar();
+      },
+      error: () => this.snackBar.open('Erro ao marcar comparecimento.', 'Fechar', { duration: 4000 }),
     });
   }
 

@@ -57,4 +57,8 @@ public class Booking extends BaseEntity {
     @Column(name = "asaas_pix_payload", columnDefinition = "TEXT")
     private String asaasPixPayload;
 
+    /** Marcado manualmente pelo admin apos o horario do compromisso. Null = ainda nao marcado. */
+    @Column(name = "compareceu")
+    private Boolean compareceu;
+
 }

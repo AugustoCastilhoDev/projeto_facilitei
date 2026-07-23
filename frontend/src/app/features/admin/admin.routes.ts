@@ -14,6 +14,7 @@ export const ADMIN_ROUTES: Routes = [
         loadComponent: () => import('./profissionais/profissionais').then((m) => m.Profissionais),
       },
       { path: 'pagamentos', loadComponent: () => import('./pagamentos/pagamentos').then((m) => m.Pagamentos) },
+      { path: 'relatorios', loadComponent: () => import('./relatorios/relatorios').then((m) => m.Relatorios) },
     ],
   },
 ];

@@ -25,6 +25,9 @@ npm test
 
 - **Reserva sem sinal** (`sinalPercentual = 0`): a reserva é confirmada na hora, sem gerar cobrança Pix (fluxo `SEM_SINAL`).
 - **Reserva com sinal**: gera uma cobrança Pix real na sandbox da Asaas e verifica que o QR Code/código copia-e-cola aparece na tela, aguardando pagamento.
+- **Comparecimento e cancelamento manual + relatório**: marca uma reserva como "não compareceu" e cancela outra pela tela Agenda, depois confere que o relatório do período reflete os números corretos (faturamento, taxa de não comparecimento).
+
+Os arquivos de spec rodam com **1 worker** (`playwright.config.ts`), não em paralelo entre si: como todos compartilham o mesmo backend/Postgres reais, rodar arquivos diferentes concorrentemente (2+ Chromium disputando CPU) já causou flakiness em interações de formulário — descoberto ao adicionar o segundo spec da suíte.
 
 ## Limitações conhecidas
 

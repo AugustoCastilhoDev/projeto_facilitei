@@ -33,6 +33,7 @@ backend/src/main/java/com/castilhodigital/facilitei/
 ├── booking/        # Reserva do cliente final, checkout, expiração automática
 ├── payment/        # Porta PaymentGatewayService + implementação payment/asaas
 ├── notification/   # Porta NotificationService + implementações console (mock) e notification/myzap (WhatsApp real)
+├── report/         # Relatório básico (faturamento, taxa de não comparecimento, clientes recorrentes)
 └── common/         # Config transversal (segurança, exceptions, ProblemDetail, scheduling, crypto)
 ```
 
@@ -106,6 +107,9 @@ Pontos que valem a pena mencionar numa entrevista — cada um resolveu um proble
 - **O mesmo bug de `LazyInitializationException` reapareceu numa coleção `@ManyToMany` (`Profissional.servicos`).** Ao expor `ProfissionalResponse.from()` (que lê `profissional.getServicos()`) fora da transação, o padrão de fetch explícito precisou ser aplicado de novo — mas dessa vez com um cuidado a mais: os métodos que **filtram** por serviço (`findByTenantIdAndServicosIdAndAtivoTrueOrderByNome`) não podem usar o mesmo `JOIN` tanto para o filtro quanto para o `FETCH` da coleção, senão a coleção carregada fica incompleta (só o item que bateu no filtro). A solução usa um `LEFT JOIN FETCH` sem condição para trazer a coleção inteira, e um `EXISTS` subquery separado só para o filtro. Nenhum dos 4 testes automatizados do `ProfissionalService`/controllers pegou isso (mockam o repositório) — só apareceu ao testar manualmente o CRUD de profissionais na UI, reforçando por que essa etapa nunca é pulada neste projeto.
 - **Falha no envio de WhatsApp nunca pode derrubar a reserva.** `BookingService.criarReserva`/`confirmarPagamento`/etc. chamam `NotificationService.enviar()` dentro do mesmo `@Transactional` que grava o booking/slot — se a exceção subisse, uma instabilidade momentânea do MyZap faria a reserva inteira sofrer rollback por causa de um efeito colateral (notificar o cliente), não da regra de negócio em si. `MyZapNotificationService` captura qualquer falha do `MyZapClient` e só loga (best effort), nunca relança.
 - **Chave do MyZap é única da plataforma, não por tenant (diferente do modelo BYOPP da Asaas).** O envio de WhatsApp sai de uma única conta/número da Facilitei — não há (ainda) isolamento por tenant nessa integração, então a chave é um header fixo do `RestClient` (`MyZapConfig`), configurada uma vez via `facilitei.myzap.api-key`, ao contrário do `access_token` da Asaas que é passado por chamada.
+- **`CANCELADO` existia no enum `PaymentStatus` sem nenhum código usá-lo.** Ao implementar os relatórios, uma "taxa de não comparecimento" real exigia primeiro um jeito de o admin registrar o que de fato aconteceu com a reserva — isso motivou ativar o cancelamento manual (`BookingService.cancelar`) e adicionar a marcação de comparecimento (`Booking.compareceu`), ambos expostos na tela Agenda.
+- **Relatório calculado em memória com Streams, não com uma query SQL `GROUP BY`.** É a primeira agregação do projeto — o volume de reservas confirmadas por tenant/mês é pequeno o bastante (dezenas a poucas centenas) para não justificar a complexidade extra de uma projeção JPQL agregada; um `JOIN FETCH` simples + `Collectors.groupingBy` é mais legível e fácil de testar.
+- **`SlotResponse` ganhou dados de `Booking` sem criar uma associação bidirecional `Slot ↔ Booking`.** Isso criaria acoplamento de entidade cíclico entre os pacotes `scheduling`/`booking` só para exibir cliente/status na agenda do admin. Em vez disso, `SlotAdminController.listarAgenda` busca os slots e os bookings correspondentes separadamente (`BookingService.buscarPorSlotIds`) e faz o merge no próprio controller — camada que já atua como ponto de composição entre pacotes neste projeto (mesmo espírito de `BookingCheckoutService`).
 
 ## Limitações conhecidas
 
@@ -119,6 +123,8 @@ Pontos que valem a pena mencionar numa entrevista — cada um resolveu um proble
 - **CPF/CNPJ é obrigatório no formulário público mesmo quando o serviço não cobra sinal** (a validação está no DTO, não condicionada ao serviço escolhido) — só é estritamente necessário quando uma cobrança Pix de fato será gerada.
 - **WhatsApp via MyZap é um provedor não-oficial** (automação sobre o WhatsApp Web/multi-dispositivo, não a Cloud API da Meta) — mais simples de configurar (sem verificação de empresa nem aprovação de template), mas o número usado corre o risco de ser suspenso pela Meta a qualquer momento, por estar fora dos termos de uso oficiais do WhatsApp.
 - **Notificação por WhatsApp sai de uma única conta/número da plataforma**, não por tenant — todo negócio que usa o Facilitei hoje compartilha o mesmo remetente.
+- **Faturamento do relatório não distingue sinal já recebido do valor total combinado a receber no local.** Conta o preço cheio do serviço para toda reserva confirmada que não foi marcada como não comparecimento, mas o sistema só sabe com certeza que o *sinal* (quando há) foi pago via Pix — o restante é um valor combinado presencialmente, sem registro.
+- **Comparecimento é 100% manual** — não há lembrete automático nem confirmação do próprio cliente; se o admin nunca marcar, a reserva simplesmente não entra no cálculo da taxa de não comparecimento (fica de fora do denominador, não conta como comparecimento).
 
 ## Como rodar localmente
 
@@ -202,7 +208,7 @@ cd backend && mvn test
 cd frontend && ng test --watch=false
 ```
 
-84 testes no backend e 12 suítes no frontend, cobrindo desde regras de negócio isoladas (cálculo de sinal, conflito de horário por profissional, expiração, rate limiting, criptografia de credenciais) até os controllers REST, a integração real com o sandbox da Asaas e o envio de WhatsApp via MyZap.
+104 testes no backend e 13 suítes no frontend, cobrindo desde regras de negócio isoladas (cálculo de sinal, conflito de horário por profissional, expiração, rate limiting, criptografia de credenciais) até os controllers REST, a integração real com o sandbox da Asaas, o envio de WhatsApp via MyZap e o relatório básico.
 
 O GitHub Actions (`.github/workflows/ci.yml`) roda exatamente esses mesmos comandos — `mvn test` + `mvn package` no backend, `ng test` + `ng build` no frontend — a cada push e pull request para a `main`. Nenhum teste depende de banco de dados real (tudo via `@WebMvcTest`/Mockito ou testes puros de unidade), então o job do backend não precisa subir um Postgres.
 

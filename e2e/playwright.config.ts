@@ -9,6 +9,12 @@ export default defineConfig({
   testDir: './tests',
   timeout: 30_000,
   fullyParallel: false,
+  // 1 worker: os specs compartilham o mesmo backend/Postgres reais (nao
+  // mocks), e rodar arquivos diferentes em paralelo mostrou flakiness (dois
+  // Chromium concorrentes disputando CPU atrasam o Angular o suficiente pra
+  // um fill() de formulario acontecer antes da change detection anterior
+  // assentar) - descoberto ao adicionar o segundo spec file da suite.
+  workers: 1,
   retries: 0,
   reporter: 'list',
   use: {

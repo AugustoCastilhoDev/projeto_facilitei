@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.castilhodigital.facilitei.auth.TenantSecurityGuard;
+import com.castilhodigital.facilitei.booking.BookingService;
 import com.castilhodigital.facilitei.catalog.ServiceOffering;
 import com.castilhodigital.facilitei.common.exception.AcessoNegadoException;
 import com.castilhodigital.facilitei.professional.Profissional;
@@ -15,6 +16,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -35,6 +37,9 @@ class SlotAdminControllerTest {
 
     @MockitoBean
     private SlotService slotService;
+
+    @MockitoBean
+    private BookingService bookingService;
 
     @MockitoBean
     private TenantSecurityGuard tenantSecurityGuard;
@@ -73,6 +78,7 @@ class SlotAdminControllerTest {
     void listarAgendaRetornaTodosOsStatus() throws Exception {
         LocalDate amanha = LocalDate.now().plusDays(1);
         when(slotService.listarAgendaPorTenant(1L, null, amanha, amanha)).thenReturn(List.of(novoSlot(11L)));
+        when(bookingService.buscarPorSlotIds(List.of(11L))).thenReturn(Map.of());
 
         mockMvc.perform(get("/api/admin/tenants/1/slots").param("inicio", amanha.toString()).param("fim", amanha.toString()))
                 .andExpect(status().isOk())

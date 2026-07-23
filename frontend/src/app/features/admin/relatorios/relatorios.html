@@ -1,0 +1,70 @@
+<div class="relatorios-toolbar">
+  <label>
+    De
+    <input type="date" class="campo-data" [value]="inicio()" (change)="onInicioChange($event)" />
+  </label>
+  <label>
+    Ate
+    <input type="date" class="campo-data" [value]="fim()" (change)="onFimChange($event)" />
+  </label>
+</div>
+
+@if (carregando()) {
+  <div class="carregando">
+    <mat-spinner diameter="32" />
+  </div>
+} @else if (relatorio(); as r) {
+  <div class="cards">
+    <mat-card>
+      <mat-card-content>
+        <span class="card-label">Faturamento do periodo</span>
+        <span class="card-valor">R$ {{ r.faturamentoTotal | number: '1.2-2' }}</span>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card>
+      <mat-card-content>
+        <span class="card-label">Reservas confirmadas</span>
+        <span class="card-valor">{{ r.totalReservasConfirmadas }}</span>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card>
+      <mat-card-content>
+        <span class="card-label">Taxa de nao comparecimento</span>
+        <span class="card-valor">{{ r.taxaNaoComparecimentoPercentual | number: '1.1-1' }}%</span>
+        <span class="card-legenda">{{ r.totalNaoComparecimentos }} de {{ r.totalComparecimentosMarcados }} marcados</span>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <h3>Clientes recorrentes</h3>
+  @if (r.clientesRecorrentes.length === 0) {
+    <p class="vazio">Nenhum cliente recorrente neste periodo.</p>
+  } @else {
+    <table mat-table [dataSource]="r.clientesRecorrentes" class="tabela-recorrentes">
+      <ng-container matColumnDef="clienteNome">
+        <th mat-header-cell *matHeaderCellDef>Nome</th>
+        <td mat-cell *matCellDef="let cliente">{{ cliente.clienteNome }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="clienteTelefone">
+        <th mat-header-cell *matHeaderCellDef>Telefone</th>
+        <td mat-cell *matCellDef="let cliente">{{ cliente.clienteTelefone }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="totalAgendamentos">
+        <th mat-header-cell *matHeaderCellDef>Total de agendamentos</th>
+        <td mat-cell *matCellDef="let cliente">{{ cliente.totalAgendamentos }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="ultimoAgendamento">
+        <th mat-header-cell *matHeaderCellDef>Ultimo agendamento</th>
+        <td mat-cell *matCellDef="let cliente">{{ cliente.ultimoAgendamento | date: 'dd/MM/yyyy HH:mm' }}</td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="colunas"></tr>
+      <tr mat-row *matRowDef="let row; columns: colunas"></tr>
+    </table>
+  }
+}

@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.castilhodigital.facilitei.common.exception.EntidadeNaoEncontradaException;
+import com.castilhodigital.facilitei.common.exception.RegraDeNegocioException;
 import com.castilhodigital.facilitei.notification.NotificationService;
 import com.castilhodigital.facilitei.scheduling.Slot;
 import com.castilhodigital.facilitei.scheduling.SlotService;
@@ -157,6 +158,100 @@ class BookingServiceTest {
 
         assertThat(booking.getStatusPagamento()).isEqualTo(PaymentStatus.SEM_SINAL);
         verify(slotService).confirmar(9L);
+    }
+
+    @Test
+    void buscarPorIdETenantRetornaReservaQuandoPertenceAoTenant() {
+        Booking booking = new Booking();
+        when(bookingRepository.findByIdAndSlot_Tenant_Id(5L, 1L)).thenReturn(Optional.of(booking));
+
+        assertThat(bookingService.buscarPorIdETenant(5L, 1L)).isSameAs(booking);
+    }
+
+    @Test
+    void buscarPorIdETenantLancaQuandoReservaNaoPertenceAoTenant() {
+        when(bookingRepository.findByIdAndSlot_Tenant_Id(5L, 1L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> bookingService.buscarPorIdETenant(5L, 1L))
+                .isInstanceOf(EntidadeNaoEncontradaException.class);
+    }
+
+    @Test
+    void marcarComparecimentoMarcaQuandoReservaEstaConfirmada() {
+        Booking booking = new Booking();
+        booking.setStatusPagamento(PaymentStatus.SEM_SINAL);
+        when(bookingRepository.findByIdAndSlot_Tenant_Id(5L, 1L)).thenReturn(Optional.of(booking));
+
+        bookingService.marcarComparecimento(5L, 1L, false);
+
+        assertThat(booking.getCompareceu()).isFalse();
+    }
+
+    @Test
+    void marcarComparecimentoRejeitaQuandoReservaAindaNaoConfirmada() {
+        Booking booking = new Booking();
+        booking.setStatusPagamento(PaymentStatus.PENDENTE);
+        when(bookingRepository.findByIdAndSlot_Tenant_Id(5L, 1L)).thenReturn(Optional.of(booking));
+
+        assertThatThrownBy(() -> bookingService.marcarComparecimento(5L, 1L, true))
+                .isInstanceOf(RegraDeNegocioException.class);
+    }
+
+    @Test
+    void cancelarLiberaSlotEEnviaNotificacao() {
+        Slot slot = new Slot();
+        ReflectionTestUtils.setField(slot, "id", 9L);
+
+        Booking booking = new Booking();
+        booking.setSlot(slot);
+        booking.setClienteTelefone("+5511999999999");
+        booking.setStatusPagamento(PaymentStatus.PAGO);
+        when(bookingRepository.findByIdAndSlot_Tenant_Id(5L, 1L)).thenReturn(Optional.of(booking));
+
+        bookingService.cancelar(5L, 1L);
+
+        assertThat(booking.getStatusPagamento()).isEqualTo(PaymentStatus.CANCELADO);
+        verify(slotService).liberar(9L);
+        verify(notificationService).enviar("+5511999999999", "Sua reserva foi cancelada pelo estabelecimento.");
+    }
+
+    @Test
+    void cancelarRejeitaQuandoReservaJaCancelada() {
+        Booking booking = new Booking();
+        booking.setStatusPagamento(PaymentStatus.CANCELADO);
+        when(bookingRepository.findByIdAndSlot_Tenant_Id(5L, 1L)).thenReturn(Optional.of(booking));
+
+        assertThatThrownBy(() -> bookingService.cancelar(5L, 1L)).isInstanceOf(RegraDeNegocioException.class);
+        verify(slotService, never()).liberar(org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    @Test
+    void cancelarRejeitaQuandoReservaJaExpirada() {
+        Booking booking = new Booking();
+        booking.setStatusPagamento(PaymentStatus.EXPIRADO);
+        when(bookingRepository.findByIdAndSlot_Tenant_Id(5L, 1L)).thenReturn(Optional.of(booking));
+
+        assertThatThrownBy(() -> bookingService.cancelar(5L, 1L)).isInstanceOf(RegraDeNegocioException.class);
+        verify(slotService, never()).liberar(org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    @Test
+    void buscarPorSlotIdsRetornaMapaPorIdDoSlot() {
+        Slot slot1 = new Slot();
+        ReflectionTestUtils.setField(slot1, "id", 1L);
+        Booking booking1 = new Booking();
+        booking1.setSlot(slot1);
+
+        Slot slot2 = new Slot();
+        ReflectionTestUtils.setField(slot2, "id", 2L);
+        Booking booking2 = new Booking();
+        booking2.setSlot(slot2);
+
+        when(bookingRepository.findBySlotIdIn(List.of(1L, 2L))).thenReturn(List.of(booking1, booking2));
+
+        var resultado = bookingService.buscarPorSlotIds(List.of(1L, 2L));
+
+        assertThat(resultado).containsEntry(1L, booking1).containsEntry(2L, booking2);
     }
 
 }

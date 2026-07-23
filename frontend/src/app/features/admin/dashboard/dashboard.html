@@ -40,6 +40,15 @@
   >
     Pagamentos
   </a>
+  <a
+    mat-tab-link
+    routerLink="relatorios"
+    routerLinkActive
+    #relatoriosLink="routerLinkActive"
+    [active]="relatoriosLink.isActive"
+  >
+    Relatorios
+  </a>
 </nav>
 
 <mat-tab-nav-panel #painel class="dashboard-content">
