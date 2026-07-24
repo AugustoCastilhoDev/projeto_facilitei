@@ -1,6 +1,6 @@
 # Política de Privacidade — Facilitei
 
-> **Status: minuta inicial, ainda não publicada.** Cobre os fluxos de dados reais da plataforma (cadastro do Negócio, dados do Cliente Final no agendamento, repasse à Asaas). Campos entre `[colchetes]` dependem da abertura do CNPJ e definição do encarregado (DPO), e todo o documento deve ser revisado por um profissional antes de publicação — ver `ROADMAP.md`.
+> **Status: minuta revisada com profissional nos pontos de LGPD (base legal por finalidade, DPO simplificado, transferência internacional), ainda não publicada.** Cobre os fluxos de dados reais da plataforma (cadastro do Negócio, dados do Cliente Final no agendamento, repasse à Asaas, hospedagem nos EUA). Campos entre `[colchetes]` dependem principalmente da abertura do CNPJ e do e-mail de contato definitivo, e o documento completo ainda deve ser formalmente aprovado por um profissional antes de publicação — ver `ROADMAP.md`.
 
 **Última atualização:** [data de publicação]
 
@@ -36,29 +36,41 @@ Esta política trata de dois grupos de titulares diferentes, com papéis distint
 
 Não coletamos dados sensíveis (saúde, biometria, origem racial etc.) nem dados de menores de idade — a plataforma não é direcionada a crianças ou adolescentes.
 
-## 3. Para que usamos esses dados
+## 3. Para que usamos esses dados, e com qual base legal (art. 7º da LGPD)
 
-- **Viabilizar o agendamento**: identificar quem reservou o quê, com quem e quando.
-- **Gerar a cobrança Pix do sinal**, quando o serviço escolhido exigir — repassando nome, CPF/CNPJ e telefone do Cliente Final para a API da Asaas, usando a chave do próprio Negócio (ver seção 4 e o modelo BYOPP descrito nos [Termos de Uso](termos-de-uso.md)).
-- **Autenticar o Negócio** no painel administrativo e proteger contra acesso indevido (rate limiting de login).
-- **Comunicar o status da reserva** ao Cliente Final (confirmação, expiração por falta de pagamento etc.).
-- **Cumprir obrigações legais**, quando aplicável (ex.: fiscais, regulatórias).
+| Finalidade do tratamento | Dados usados | Base legal (art. 7º, LGPD) |
+|---|---|---|
+| Viabilizar agendamentos e gerenciar horários | Nome, e-mail, telefone | Execução de contrato (inciso V) |
+| Gerar a cobrança Pix do sinal e conferir o pagamento — repassando dados à API da Asaas, usando a chave do próprio Negócio (ver seção 4 e o modelo BYOPP nos [Termos de Uso](termos-de-uso.md)) | Nome, CPF/CNPJ, dados transacionais | Execução de contrato e cumprimento de obrigação legal (incisos V e II) |
+| Comunicar o status da reserva ao Cliente Final (confirmação, lembretes, expiração por falta de pagamento) | Telefone, e-mail | Legítimo interesse ou execução de contrato (incisos IX ou V) |
+| Autenticar o Negócio no painel e proteger contra acesso indevido (rate limiting de login) | E-mail, senha (hash), endereço IP | **[Legítimo interesse (inciso IX) — sugestão a confirmar com o profissional]** |
+| Cumprir obrigações legais, quando aplicável (ex.: fiscais, regulatórias) | Dados cadastrais do Negócio | Cumprimento de obrigação legal (inciso II) |
 
 Não usamos os dados do Cliente Final para enviar publicidade da Facilitei, nem vendemos ou alugamos dados pessoais a terceiros.
 
 ## 4. Com quem compartilhamos dados
 
 - **Asaas** (instituição de pagamento): recebe nome, CPF/CNPJ e telefone do Cliente Final para gerar a cobrança Pix, diretamente na conta do Negócio que fez o agendamento. A Asaas tem sua própria política de privacidade como instituição de pagamento regulada.
-- **Provedores de infraestrutura** (hospedagem, banco de dados): armazenam os dados em nome da Facilitei, sob obrigação contratual de confidencialidade.
+- **Provedores de infraestrutura** (hospedagem, banco de dados): armazenam os dados em nome da Facilitei, sob obrigação contratual de confidencialidade. Ver seção 5 sobre a localização do servidor.
 - Não compartilhamos dados com nenhum outro terceiro para fins de marketing ou revenda.
 
-## 5. Por quanto tempo guardamos os dados
+## 5. Transferência internacional de dados
+
+Os dados tratados pela Facilitei são armazenados em servidor localizado em **Boston, Estados Unidos** (infraestrutura contratada junto à Hostinger). Isso caracteriza uma transferência internacional de dados pessoais, nos termos do art. 33 da Lei Geral de Proteção de Dados.
+
+- Os Estados Unidos não constam, até o momento, na lista de países com nível de proteção de dados reconhecido como adequado pela Autoridade Nacional de Proteção de Dados (ANPD) — hoje limitada à União Europeia e ao Espaço Econômico Europeu.
+- A transferência é fundamentada na adoção das Cláusulas-Padrão Contratuais (CPCs) aprovadas pela ANPD por meio da Resolução CD/ANPD nº 19/2024, ou, alternativamente, na estrita necessidade de transferência para a execução do contrato do qual o titular é parte (art. 33, inciso IX, da LGPD), garantindo salvaguardas e nível de proteção equivalente ao exigido pela legislação brasileira.
+- Isso não impede nem torna irregular o uso desse provedor — é uma prática comum inclusive entre empresas brasileiras —, mas a LGPD exige essa divulgação clara do país de destino e do mecanismo utilizado.
+
+> Falta apenas formalizar essa cláusula no contrato com o provedor de hospedagem (Hostinger), quando aplicável — ver `ROADMAP.md`.
+
+## 6. Por quanto tempo guardamos os dados
 
 - Dados do Negócio: enquanto a conta estiver ativa, e por prazo adicional exigido por obrigações legais/fiscais após o encerramento.
 - Dados do Cliente Final: pelo tempo necessário para viabilizar a reserva e eventual necessidade de comprovação do pagamento do sinal perante o Negócio, ou por prazo legal aplicável.
 - Dados podem ser mantidos por período adicional quando necessário para cumprimento de obrigação legal ou exercício regular de direitos em processo judicial/administrativo.
 
-## 6. Segurança
+## 7. Segurança
 
 - Senhas armazenadas com hash (nunca em texto puro).
 - Chave de API da conta Asaas de cada Negócio cifrada em repouso no banco de dados.
@@ -66,7 +78,7 @@ Não usamos os dados do Cliente Final para enviar publicidade da Facilitei, nem 
 - Proteção contra força bruta no login (limite de tentativas por IP).
 - Como toda plataforma, não há garantia absoluta contra incidentes de segurança, mas adotamos medidas técnicas razoáveis proporcionais ao estágio e porte atual do produto.
 
-## 7. Seus direitos como titular de dados (art. 18 da LGPD)
+## 8. Seus direitos como titular de dados (art. 18 da LGPD)
 
 Você pode solicitar, a qualquer momento:
 
@@ -83,16 +95,16 @@ Se você é **Cliente Final** e quer exercer algum desses direitos sobre os dado
 
 Se você é o **Negócio**, pode exercer esses direitos diretamente pelo painel (edição de cadastro) ou pelo e-mail acima.
 
-## 8. Cookies e armazenamento local
+## 9. Cookies e armazenamento local
 
 O painel administrativo usa armazenamento local do navegador (localStorage) para manter a sessão autenticada (token de acesso). Não usamos cookies de rastreamento publicitário.
 
-## 9. Alterações desta política
+## 10. Alterações desta política
 
 Podemos atualizar esta política para refletir mudanças na plataforma ou na legislação. A versão vigente estará sempre disponível nesta página, com a data da última atualização no topo.
 
-## 10. Contato e encarregado (DPO)
+## 11. Contato e encarregado (DPO)
 
-Para exercer seus direitos ou tirar dúvidas sobre esta política: **[e-mail de contato]**.
+Na qualidade de Agente de Tratamento de Pequeno Porte e em conformidade com as flexibilizações previstas na Resolução CD/ANPD nº 2/2022, a Facilitei fica dispensada da indicação formal de um Encarregado de Proteção de Dados (DPO) nomeado.
 
-Encarregado de proteção de dados (DPO): **[nome — a definir; em estágio inicial, pode ser o próprio responsável pela empresa]**.
+Para exercer seus direitos previstos na LGPD ou tirar dúvidas sobre esta política, o titular pode utilizar nosso canal direto e centralizado de atendimento: **[e-mail de contato]**.

@@ -1,6 +1,6 @@
 # Termos de Uso — Facilitei
 
-> **Status: minuta inicial, ainda não publicada.** Este documento cobre a estrutura jurídica do modelo de negócio (BYOPP, papel da plataforma no pagamento, relação com o Negócio e com o Cliente Final), mas os campos entre `[colchetes]` dependem da abertura do CNPJ e devem ser revisados por um contador/advogado antes de qualquer publicação real para usuários. Ver `ROADMAP.md`.
+> **Status: minuta revisada com profissional nos pontos de ausência de intermediação financeira (BYOPP) e direito de arrependimento, ainda não publicada.** Este documento cobre a estrutura jurídica do modelo de negócio (BYOPP, papel da plataforma no pagamento, relação com o Negócio e com o Cliente Final), mas os campos entre `[colchetes]` dependem principalmente da abertura do CNPJ, e o documento completo ainda deve ser formalmente aprovado por um contador/advogado antes de qualquer publicação real para usuários. Ver `ROADMAP.md`.
 
 **Última atualização:** [data de publicação]
 
@@ -33,7 +33,7 @@ A Facilitei **não presta serviços de barbearia, estética, saúde ou qualquer 
 ## 4. Cadastro e dados do Cliente Final
 
 - Para concluir um agendamento, o Cliente Final fornece nome completo, telefone (WhatsApp) e CPF/CNPJ, usados exclusivamente para identificar a reserva e, quando houver sinal, gerar a cobrança Pix.
-- O tratamento desses dados segue a [Política de Privacidade](politica-de-privacidade.md), que também explica o papel do Negócio como parte responsável perante seu próprio cliente (LGPD).
+- O tratamento desses dados segue a [Política de Privacidade](politica-de-privacidade.md), que também explica o papel do Negócio como parte responsável perante seu próprio cliente (LGPD), bem como onde os dados são armazenados (servidor nos Estados Unidos, ver seção de transferência internacional de dados naquele documento).
 
 ## 5. Pagamento do sinal — modelo BYOPP ("traga sua própria conta")
 
@@ -44,12 +44,21 @@ Este é o ponto mais importante para entender como o dinheiro se movimenta na Fa
 - A Facilitei apenas aciona a API da Asaas, em nome do Negócio e com a chave de API fornecida por ele, para gerar a cobrança e confirmar automaticamente a reserva quando o pagamento é identificado.
 - Qualquer disputa, estorno, reembolso ou problema relacionado ao pagamento do sinal é de responsabilidade do Negócio junto à Asaas — a Facilitei não é parte nessa relação financeira e não tem acesso ao saldo, extrato ou movimentação da conta do Negócio, além da confirmação de status do pagamento específico daquela reserva.
 - O restante do valor do serviço (o que não for cobrado como sinal) é acertado diretamente entre Negócio e Cliente Final, fora da plataforma.
+- **Da natureza do serviço e ausência de intermediação financeira**: a Facilitei é uma plataforma de software (SaaS) que fornece ferramentas de automação e integração de tecnologia por meio de API. A Facilitei não atua como instituição financeira, instituição de pagamento, operadora de cartão de crédito ou Iniciador de Transação de Pagamento (ITP) nos termos das resoluções do Banco Central do Brasil. Toda e qualquer transação financeira é realizada diretamente entre o Cliente Final e o Negócio, utilizando as chaves e credenciais de API exclusivas e de responsabilidade integral do próprio Negócio junto à sua respectiva instituição de pagamento homologada.
 
 ## 6. Assinatura da Facilitei
 
-- O Negócio paga à Facilitei uma assinatura pelo uso da plataforma (modelo e valores informados no momento da contratação ou em [tabela de planos]).
+- O Negócio paga à Facilitei uma assinatura mensal pelo uso da plataforma, conforme o plano escolhido no momento da contratação:
+
+| Plano | Valor mensal | Limite de profissionais |
+|---|---|---|
+| Básico | R$ 49,00 | até 2 |
+| Profissional | R$ 89,00 | até 5 |
+| Premium | R$ 149,00 | ilimitado |
+
+- Os planos incluem um período de teste gratuito (trial) antes da primeira cobrança, conforme informado na tela de cadastro.
+- Os valores acima podem ser reajustados pela Facilitei mediante aviso prévio ao Negócio, nos termos da seção 11 (Alterações destes Termos).
 - A assinatura é cobrada da conta do próprio Negócio — não é descontada do sinal do Cliente Final nem de qualquer valor que circule pela conta Asaas do Negócio.
-- Enquanto a cobrança automática de assinatura não estiver disponível na plataforma, o valor combinado pode ser cobrado manualmente, fora do sistema, mediante acordo direto com a Facilitei.
 
 ## 7. Obrigações do Negócio
 
@@ -60,10 +69,12 @@ O Negócio se compromete a:
 - Manter sua própria conta Asaas em conformidade com os termos daquela instituição;
 - Informar corretamente sua política de cancelamento/reembolso de sinal aos seus clientes finais (a Facilitei não define nem arbitra essa política).
 
+**Dos cancelamentos e do direito de arrependimento**: as políticas de cancelamento, reembolso de sinal e não comparecimento (no-show) são definidas e gerenciadas de forma autônoma por cada Negócio. Todavia, em estrita observância ao art. 49 do Código de Defesa do Consumidor (Lei nº 8.078/1990), é assegurado ao Cliente Final o direito de arrependimento e reembolso integral do sinal em até 7 (sete) dias a contar do agendamento realizado de forma online, desde que o cancelamento seja solicitado antes da efetiva prestação do serviço ou com antecedência mínima de **[inserir, ex.: 24 horas]** do horário agendado, em respeito ao princípio da boa-fé objetiva.
+
 ## 8. Limitação de responsabilidade
 
 - A Facilitei é fornecida "como está", com melhor esforço razoável de disponibilidade, mas sem garantia de operação ininterrupta — especialmente nesta fase inicial do produto, sem acordo de nível de serviço (SLA) formal.
-- A Facilitei não se responsabiliza por: (a) indisponibilidade ou instabilidade da Asaas ou de outros provedores externos; (b) disputas entre Negócio e Cliente Final quanto à qualidade do serviço agendado, cancelamentos ou reembolsos; (c) uso indevido da plataforma por qualquer uma das partes.
+- A Facilitei não se responsabiliza por: (a) indisponibilidade ou instabilidade da Asaas, do provedor de hospedagem (infraestrutura contratada junto à Hostinger) ou de outros provedores externos; (b) disputas entre Negócio e Cliente Final quanto à qualidade do serviço agendado, cancelamentos ou reembolsos; (c) uso indevido da plataforma por qualquer uma das partes.
 - Nada nesta cláusula exclui responsabilidades que não podem ser limitadas por lei (ex.: danos causados por dolo ou culpa grave da Facilitei).
 
 ## 9. Propriedade intelectual

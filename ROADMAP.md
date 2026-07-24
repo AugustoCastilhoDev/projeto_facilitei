@@ -2,7 +2,7 @@
 
 > Como usar: marque `[x]` conforme for concluindo cada item. Sinta-se livre para editar, reordenar, adicionar notas/datas ou remover itens que deixarem de fazer sentido — este documento é vivo, não um contrato fechado.
 
-O que existe hoje é uma base técnica sólida (agendamento multi-tenant com múltiplos profissionais por negócio, vínculo serviço↔profissional editável dos dois lados, sinal via Pix, WhatsApp real via MyZap, relatórios básicos, cobrança automática da própria assinatura SaaS com planos e trial, observabilidade básica (correlation id, Sentry, health check), painel admin, onboarding self-service, ~152 testes automatizados). O sinal já cai direto na conta Asaas de cada negócio (modelo "traga sua própria conta de pagamento" — BYOPP, ver README) — decisão tomada no lugar do split/marketplace originalmente cogitado, porque não exige formalização prévia com a Asaas nem custodia dinheiro de terceiros. A mensalidade da Facilitei em si (diferente do sinal) usa a chave Asaas da própria plataforma. Uma minuta de Termos de Uso/Política de Privacidade já foi escrita (`docs/`), pendente de revisão profissional. O que ainda falta para vender de verdade não é código — é fechar esse jurídico com um profissional e decidir onde hospedar em produção.
+O que existe hoje é uma base técnica sólida (agendamento multi-tenant com múltiplos profissionais por negócio, vínculo serviço↔profissional editável dos dois lados, sinal via Pix, WhatsApp real via MyZap, relatórios básicos, cobrança automática da própria assinatura SaaS com planos e trial, observabilidade básica (correlation id, Sentry, health check), painel admin, onboarding self-service, ~152 testes automatizados). O sinal já cai direto na conta Asaas de cada negócio (modelo "traga sua própria conta de pagamento" — BYOPP, ver README) — decisão tomada no lugar do split/marketplace originalmente cogitado, porque não exige formalização prévia com a Asaas nem custodia dinheiro de terceiros. A mensalidade da Facilitei em si (diferente do sinal) usa a chave Asaas da própria plataforma. Uma minuta de Termos de Uso/Política de Privacidade já foi escrita (`docs/`), pendente de revisão profissional. A hospedagem em produção já está decidida (VPS na Hostinger, datacenter em Boston/EUA, domínio via Registro.br) — a minuta de Política de Privacidade já reflete isso (transferência internacional de dados, seção 5). O que ainda falta para vender de verdade não é código — é fechar esse jurídico com um profissional e efetivamente subir o ambiente de produção nessa VPS.
 
 Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto).
 
@@ -35,14 +35,14 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 - [x] Onboarding self-service — formulário público de cadastro de negócio (hoje só existe via curl)
 
 ### Infraestrutura
-- [ ] Deploy em produção: Postgres gerenciado com backup, domínio, HTTPS
+- [ ] Deploy em produção: Postgres gerenciado com backup, domínio, HTTPS — hospedagem já decidida (VPS Hostinger, Boston/EUA, mesma VPS de outros 2 projetos já em produção; domínio via Registro.br), falta subir o ambiente de fato
 - [x] Testar o webhook da Asaas com URL pública de verdade (hoje só foi simulado localmente)
 - [x] Hardening básico: rate limiting no login, segredos fora de arquivo `.yml` (usar secrets manager do provedor de hospedagem)
 
 ### Jurídico & financeiro
 - [ ] Conversar com contador sobre CNPJ e enquadramento tributário correto
 - [x] Escrever uma minuta de Termos de Uso + Política de Privacidade (LGPD) — deixa claro que a Facilitei não custodia o pagamento do sinal (modelo BYOPP), só a assinatura do SaaS; ver [`docs/termos-de-uso.md`](docs/termos-de-uso.md) e [`docs/politica-de-privacidade.md`](docs/politica-de-privacidade.md)
-- [ ] Revisar a minuta acima com contador/advogado e preencher os campos pendentes (razão social, CNPJ, endereço, foro) antes de publicar de verdade
+- [ ] Revisar a minuta acima com contador/advogado e preencher os campos pendentes (razão social, CNPJ, endereço, foro, e-mail de contato) antes de publicar de verdade — pontos de conteúdo já resolvidos com profissional: ausência de intermediação financeira (BYOPP vs. ITP), direito de arrependimento (art. 49 CDC), base legal por finalidade (art. 7º LGPD), DPO simplificado (Resolução CD/ANPD nº 2/2022) e transferência internacional de dados (Resolução CD/ANPD nº 19/2024); tabela de planos da seção 6 dos Termos de Uso já preenchida com os valores reais do enum `Plano`
 - ~~Formalizar com a Asaas o modelo de "plataforma com split de pagamento"~~ — decidido não seguir por esse caminho: o modelo BYOPP não exige formalização nenhuma com a Asaas
 - [x] Implementar o recebimento direto na conta do próprio tenant (modelo BYOPP: chave Asaas por tenant, cifrada em repouso, webhook autenticado por tenant) — ver README/`docs/configurar-pagamentos.md`
 
@@ -109,6 +109,6 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 ## Primeiros passos concretos (próximas 2–3 semanas)
 
 1. [ ] Conversar com um contador sobre CNPJ e enquadramento
-2. [ ] Revisar a minuta de Termos de Uso e Política de Privacidade com contador/advogado (rascunho já escrito, ver `docs/`)
-3. [ ] Escolher onde hospedar em produção e subir o ambiente com domínio e HTTPS
+2. [ ] Revisar a minuta de Termos de Uso e Política de Privacidade com contador/advogado (rascunho já escrito, ver `docs/`) — 5 pontos de conteúdo já resolvidos com profissional e tabela de planos preenchida, falta só formalizar CNPJ/razão social/endereço/foro/e-mail e aprovar o documento final
+3. [x] ~~Escolher onde hospedar em produção~~ — VPS Hostinger (Boston/EUA) e domínio via Registro.br já decididos; falta subir o ambiente de fato (Postgres, domínio, HTTPS)
 4. [ ] Conversar com 5 donos de barbearia/salão reais — mostrar o produto (inclusive como configurar o recebimento Pix), entender objeções, ainda não vender
