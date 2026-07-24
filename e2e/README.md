@@ -29,8 +29,11 @@ npm test
 
 Os arquivos de spec rodam com **1 worker** (`playwright.config.ts`), não em paralelo entre si: como todos compartilham o mesmo backend/Postgres reais, rodar arquivos diferentes concorrentemente (2+ Chromium disputando CPU) já causou flakiness em interações de formulário — descoberto ao adicionar o segundo spec da suíte.
 
+## Rodando no CI
+
+O workflow do GitHub Actions (`.github/workflows/ci.yml`, job `e2e`) roda esta suíte a cada push/PR: sobe um Postgres como service container, inicia o backend real em background (aguardando `/actuator/health` responder `UP` antes de prosseguir) e deixa o `webServer` do Playwright subir o frontend, exatamente como localmente. Como não existe `application-local.yml` no CI (arquivo git-ignorado, só existe localmente), o teste "com sinal" pula sozinho lá — só os fluxos que não geram cobrança Pix real (`sinalPercentual = 0`) rodam de fato.
+
 ## Limitações conhecidas
 
-- Não roda no CI (GitHub Actions) ainda — exigiria subir Postgres, aplicar migrations e iniciar o backend real dentro do workflow. Ver `ROADMAP.md`.
 - Não simula a confirmação do pagamento em si (isso exigiria um Pix real ou o mesmo túnel ngrok usado para testar o webhook manualmente).
 - Cada execução deixa um tenant novo no banco (não há endpoint de exclusão de tenant ainda) — aceitável para uso local, mas cresce indefinidamente se rodado muitas vezes.

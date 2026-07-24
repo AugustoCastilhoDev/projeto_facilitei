@@ -60,7 +60,7 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 ### Infraestrutura
 - [x] CI/CD — build e testes automáticos a cada push
 - [x] Observabilidade: logs estruturados (suporte nativo do Spring Boot 4, `logging.structured.format.console`) + correlation id por requisição, monitoramento de erro via Sentry (SDK core, DSN vazio por padrão até uma conta ser criada) — falta só o "alerta" de fato (`/actuator/health` já existe, mas disparar notificação de indisponibilidade real só faz sentido quando houver deploy em produção, ver item abaixo)
-- [x] Testes end-to-end do fluxo completo (Playwright/Cypress), não só unitários — rodando localmente; ainda não integrado ao CI (exigiria Postgres + backend real no workflow)
+- [x] Testes end-to-end do fluxo completo (Playwright), não só unitários — integrado ao CI (GitHub Actions): sobe Postgres como service container, o backend real em background (aguardando `/actuator/health` responder `UP`) e o frontend via `ng serve`; o teste do fluxo "com sinal" continua pulando sozinho no CI (não há chave sandbox da Asaas nesse ambiente), só os fluxos que não dependem dela rodam de fato
 
 ### Jurídico & financeiro
 - [ ] Contrato entre plataforma e cada negócio definindo quem é controlador e quem é operador dos dados (LGPD)
