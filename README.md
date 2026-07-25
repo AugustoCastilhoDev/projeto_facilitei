@@ -57,6 +57,10 @@ frontend/src/app/
 
 Todas as rotas usam `loadComponent`/`loadChildren` (lazy loading) e `withComponentInputBinding()` — parâmetros de rota (`:slug`, `:bookingId`) chegam direto como `input()` do componente, sem precisar ler `ActivatedRoute` manualmente.
 
+### Landing page — HTML/CSS estático, deliberadamente sem framework
+
+[`landing/`](landing/index.html) é a página institucional (fora do app Angular), pensada pra ser 100% indexável por buscadores e agentes de IA: como o app é uma SPA renderizada no navegador, um crawler que não executa JavaScript não veria nenhum conteúdo dela. A landing usa a mesma paleta/tipografia do app (`frontend/src/theme-colors.scss`, Manrope + Roboto), tem SEO básico (meta tags, `sitemap.xml`, `robots.txt`) e GEO/AEO (dados estruturados JSON-LD `SoftwareApplication`/`FAQPage`, `llms.txt`) — ver `landing/` para o conteúdo completo. Sem build step: é só HTML/CSS (+ um JS mínimo e opcional pro menu mobile), zero dependência nova.
+
 ### Multi-tenancy e segurança
 
 - O `tenantId` fica no path da API (`/api/admin/tenants/{tenantId}/...`) por legibilidade, mas **nunca é confiado cegamente**: `TenantSecurityGuard` confere, em toda requisição admin, se o `tenantId` do path bate com o `tenantId` do JWT autenticado — fecha um IDOR clássico (OWASP API1:2023).

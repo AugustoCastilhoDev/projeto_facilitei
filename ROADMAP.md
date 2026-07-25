@@ -76,7 +76,7 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 - [ ] Teste de carga antes de qualquer campanha de aquisição maior
 
 ### Go-to-market
-- [ ] Site institucional + página de vendas (hoje só existe o painel, sem "cara" de produto)
+- [x] Site institucional + página de vendas (hoje só existe o painel, sem "cara" de produto) — landing page estática (HTML/CSS puro, sem framework, pra ficar 100% indexável por buscadores e agentes de IA) em [`landing/`](landing/index.html), com SEO (meta tags, sitemap) e GEO/AEO (JSON-LD `FAQPage`, `llms.txt`) já implementados; falta só decidir o roteamento real (domínio raiz → landing, subdomínio/subcaminho → app Angular) quando o deploy em produção acontecer
 - [ ] Canal de suporte (WhatsApp Business próprio ou help desk simples)
 - [ ] Diferenciação clara frente a concorrentes estabelecidos (Trinks, Fixed, Simples Agenda, Booksy) — o diferencial natural é o sinal via Pix nativo, sem link de terceiros
 - [ ] Ajustar preço com dados reais de uso das fases anteriores
@@ -89,6 +89,7 @@ Ver também: [README.md](README.md) (arquitetura técnica e como rodar o projeto
 - [ ] Domínio próprio / white-label por negócio
 - [ ] Parcerias com criadores de conteúdo do nicho (barbeiros, cabeleireiros)
 - [ ] Avaliar seguro de responsabilidade civil se o volume intermediado crescer
+- [ ] **Portal do cliente + diretório de negócios** (proposto pelo usuário, ainda não planejado em detalhe — retomar numa sessão dedicada): o cliente final logaria numa conta própria e veria todos os negócios já cadastrados na plataforma num só lugar, escolhendo o estabelecimento antes de agendar — hoje isso não existe em nenhum grau (cada negócio só tem seu link `/agendar/:slug`, sem diretório público). Exigiria: (1) uma entidade `Cliente` própria com login (hoje `clienteNome/Telefone/CpfCnpj` são só strings soltas em cada `Booking`, sem tabela nem histórico entre negócios diferentes); (2) endpoint público de listagem/busca de tenants (hoje só existe `GET /api/public/tenants/{slug}`, nada lista múltiplos negócios); (3) campos novos no `Tenant` pra viabilizar um diretório (categoria do negócio, cidade/endereço, foto) e a tela de cadastro pra preenchê-los; (4) uma seção nova na Política de Privacidade, já que uma conta de cliente persistente cruzando vários negócios é uma categoria de dado mais sensível que o modelo atual. **Decidido**: seria complemento ao link direto por negócio (que continua sendo o principal), não substituto — aproxima a Facilitei do modelo Booksy/Trinks, mas sem abandonar o diferencial BYOPP já declarado no roadmap.
 
 ---
 

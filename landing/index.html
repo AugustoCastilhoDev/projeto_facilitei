@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Facilitei — Agendamento online com sinal via Pix para barbearias e salões</title>
+    <meta
+      name="description"
+      content="A Facilitei é uma plataforma de agendamento online que cobra o sinal via Pix direto na conta do seu negócio, sem intermediário. Cadastre serviços, profissionais e comece a receber reservas confirmadas hoje."
+    />
+    <link rel="canonical" href="https://facilitei.com.br/" />
+
+    <!-- Favicons (mesma marca do app - ver frontend/public/brand/README.md) -->
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+
+    <!-- Open Graph / Twitter Card -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Facilitei" />
+    <meta property="og:title" content="Facilitei — Agendamento online com sinal via Pix" />
+    <meta
+      property="og:description"
+      content="O sinal do agendamento cai direto na conta do seu negócio via Pix, sem intermediário. Sem comissão por reserva - só uma assinatura mensal previsível."
+    />
+    <meta property="og:image" content="https://facilitei.com.br/assets/og-image.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:url" content="https://facilitei.com.br/" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Facilitei — Agendamento online com sinal via Pix" />
+    <meta
+      name="twitter:description"
+      content="O sinal do agendamento cai direto na conta do seu negócio via Pix, sem intermediário."
+    />
+    <meta name="twitter:image" content="https://facilitei.com.br/assets/og-image.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&family=Manrope:wght@700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+
+    <!-- JSON-LD: descreve o produto pra buscadores e agentes de IA sem precisar "entender" a pagina inteira -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Facilitei",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "Web",
+        "url": "https://facilitei.com.br/",
+        "description": "Plataforma de agendamento online com cobranca de sinal via Pix para barbearias, saloes e estudios de estetica. O sinal cai direto na conta Asaas do proprio negocio (modelo BYOPP), sem intermediacao financeira da Facilitei.",
+        "offers": [
+          { "@type": "Offer", "name": "Basico", "price": "49.00", "priceCurrency": "BRL" },
+          { "@type": "Offer", "name": "Profissional", "price": "89.00", "priceCurrency": "BRL" },
+          { "@type": "Offer", "name": "Premium", "price": "149.00", "priceCurrency": "BRL" }
+        ]
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "A Facilitei fica com uma parte do sinal cobrado do meu cliente?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Nao. O sinal cai direto na sua propria conta Asaas (modelo BYOPP - \"traga sua propria conta de pagamento\"). A Facilitei nunca recebe, guarda ou intermedia esse valor - so aciona a API da Asaas em seu nome, com a sua chave, pra gerar a cobranca e confirmar a reserva."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Preciso ter conta na Asaas para usar a Facilitei?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Sim, para cobrar o sinal via Pix voce precisa de uma conta na Asaas (gratuita) e colar sua chave de API no painel. Sem sinal configurado, a reserva ainda funciona normalmente, so que sem cobranca antecipada."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Quanto custa a Facilitei?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Tres planos fixos por mes, sem taxa por agendamento: Basico R$49 (ate 2 profissionais), Profissional R$89 (ate 5 profissionais) e Premium R$149 (profissionais ilimitados). Todos com 30 dias gratis para testar."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Meu cliente final precisa instalar algum aplicativo?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Nao. O cliente agenda direto pelo navegador, pelo link publico do seu negocio (facilitei.com.br/agendar/seu-negocio), escolhe o servico, o profissional e o horario, e paga o sinal via Pix na mesma tela."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Posso cancelar a assinatura quando quiser?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Sim, o cancelamento e feito direto pelo painel, a qualquer momento, sem multa ou contrato de fidelidade."
+            }
+          }
+        ]
+      }
+    </script>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="site-header__inner">
+        <a class="brand" href="#topo">
+          <img src="assets/logo-mark.svg" alt="" width="32" height="32" />
+          <span>Facilitei</span>
+        </a>
+        <button class="nav-toggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="menu-principal">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" />
+          </svg>
+        </button>
+        <nav class="site-nav" id="menu-principal">
+          <a href="#como-funciona">Como funciona</a>
+          <a href="#diferenciais">Diferenciais</a>
+          <a href="#planos">Planos</a>
+          <a href="#faq">Dúvidas</a>
+          <div class="site-nav__actions">
+            <a class="btn btn--ghost" href="/auth/login">Entrar</a>
+            <a class="btn btn--primary" href="/auth/registrar">Criar conta grátis</a>
+          </div>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero" id="topo">
+        <div class="container hero__inner">
+          <div>
+            <p class="eyebrow">Agendamento online + sinal via Pix</p>
+            <h1>Menos "confirmo depois", mais sinal pago na hora.</h1>
+            <p class="hero__lede">
+              A Facilitei deixa seus clientes escolherem o horário e pagarem o sinal via Pix — direto na sua
+              própria conta Asaas, sem passar pela Facilitei. Você só recebe a reserva já confirmada.
+            </p>
+            <div class="hero__ctas">
+              <a class="btn btn--primary" href="/auth/registrar">Criar minha conta grátis</a>
+              <a class="btn btn--ghost" href="#como-funciona">Ver como funciona</a>
+            </div>
+            <div class="hero__meta">
+              <span><strong>30 dias</strong> grátis para testar</span>
+              <span><strong>Sem</strong> comissão por agendamento</span>
+              <span><strong>Sem</strong> cartão de crédito no cadastro</span>
+            </div>
+          </div>
+
+          <div class="pix-card" aria-hidden="true">
+            <div class="pix-card__top">
+              <span class="dot"></span>
+              <span>PAGAMENTO DO SINAL</span>
+            </div>
+            <p class="pix-card__service">Corte Degradê</p>
+            <p class="pix-card__detail">Amanhã · 14:30 · Sinal de R$ 22,50</p>
+            <div class="pix-card__qr"></div>
+            <div class="pix-card__status">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+                <path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              Pago via Pix — reserva confirmada
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="como-funciona">
+        <div class="container">
+          <div class="section__head">
+            <p class="eyebrow">Como funciona</p>
+            <h2>Do cadastro à primeira reserva confirmada, em minutos</h2>
+            <p>Sem instalar nada, sem treinamento longo — o painel foi pensado pra quem toca o negócio sozinho.</p>
+          </div>
+          <div class="steps">
+            <div class="step">
+              <span class="step__number">01</span>
+              <h3>Cadastre seu negócio e seus serviços</h3>
+              <p>
+                Nome, horário de funcionamento, serviços com duração/preço e o percentual de sinal de cada um.
+                Leva menos de 5 minutos.
+              </p>
+            </div>
+            <div class="step">
+              <span class="step__number">02</span>
+              <h3>Compartilhe seu link de agendamento</h3>
+              <p>
+                Cada negócio ganha um link próprio (<code>facilitei.com.br/agendar/seu-negocio</code>) pra
+                divulgar no Instagram, WhatsApp ou onde seus clientes já estão.
+              </p>
+            </div>
+            <div class="step">
+              <span class="step__number">03</span>
+              <h3>Receba o sinal direto na sua conta</h3>
+              <p>
+                O cliente escolhe o horário e paga o sinal via Pix na hora. O dinheiro cai direto na sua conta
+                Asaas — a Facilitei nunca fica no meio do caminho.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section--soft" id="diferenciais">
+        <div class="container">
+          <div class="section__head">
+            <p class="eyebrow">Diferenciais</p>
+            <h2>Feita pra quem vive de agenda cheia, não de comissão</h2>
+          </div>
+          <div class="features">
+            <div class="feature">
+              <span class="feature__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke-linecap="round" />
+                </svg>
+              </span>
+              <div>
+                <h3>Sinal automático, sem intermediação</h3>
+                <p>
+                  Modelo "traga sua própria conta" (BYOPP): o sinal cai direto na sua conta Asaas. A Facilitei
+                  nunca guarda, custodia ou intermedia esse valor.
+                </p>
+              </div>
+            </div>
+            <div class="feature">
+              <span class="feature__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="16" rx="2" />
+                  <path d="M3 10h18M8 2v4M16 2v4" stroke-linecap="round" />
+                </svg>
+              </span>
+              <div>
+                <h3>Sem comissão por agendamento</h3>
+                <p>Só uma assinatura mensal fixa, previsível — não importa quantas reservas você recebe.</p>
+              </div>
+            </div>
+            <div class="feature">
+              <span class="feature__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path
+                    d="M21 11.5a8.5 8.5 0 01-12.4 7.55L3 20l1.05-5.4A8.5 8.5 0 1121 11.5z"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </span>
+              <div>
+                <h3>WhatsApp automático pro cliente</h3>
+                <p>Confirmação e lembretes enviados sozinhos, sem você precisar lembrar de avisar ninguém.</p>
+              </div>
+            </div>
+            <div class="feature">
+              <span class="feature__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 19V5a2 2 0 012-2h8l6 6v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke-linejoin="round" />
+                  <path d="M14 3v6h6M8 13h8M8 17h5" stroke-linecap="round" />
+                </svg>
+              </span>
+              <div>
+                <h3>Painel completo</h3>
+                <p>Agenda, serviços, profissionais e relatórios de faturamento/no-show num só lugar.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="planos">
+        <div class="container">
+          <div class="section__head">
+            <p class="eyebrow">Planos</p>
+            <h2>Um preço fixo por mês, sem letra miúda</h2>
+            <p>Sem taxa por transação — o modelo BYOPP não permite (nem exige) cobrar comissão por reserva.</p>
+          </div>
+          <div class="plans">
+            <div class="plan">
+              <p class="plan__name">Básico</p>
+              <p class="plan__price">R$ 49<span>/mês</span></p>
+              <p class="plan__limit">Até 2 profissionais</p>
+              <ul>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" /></svg>Agenda, serviços e profissionais</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" /></svg>Sinal via Pix (BYOPP)</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" /></svg>Relatórios básicos</li>
+              </ul>
+              <a class="btn btn--ghost btn--block" href="/auth/registrar?plano=BASICO">Começar grátis</a>
+            </div>
+            <div class="plan plan--featured">
+              <span class="plan__badge">Mais escolhido</span>
+              <p class="plan__name">Profissional</p>
+              <p class="plan__price">R$ 89<span>/mês</span></p>
+              <p class="plan__limit">Até 5 profissionais</p>
+              <ul>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" /></svg>Tudo do Básico</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" /></svg>Até 5 profissionais com agenda própria</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" /></svg>WhatsApp automático (MyZap)</li>
+              </ul>
+              <a class="btn btn--primary btn--block" href="/auth/registrar?plano=PROFISSIONAL">Começar grátis</a>
+            </div>
+            <div class="plan">
+              <p class="plan__name">Premium</p>
+              <p class="plan__price">R$ 149<span>/mês</span></p>
+              <p class="plan__limit">Profissionais ilimitados</p>
+              <ul>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" /></svg>Tudo do Profissional</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" /></svg>Profissionais ilimitados</li>
+                <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" /></svg>Suporte prioritário</li>
+              </ul>
+              <a class="btn btn--ghost btn--block" href="/auth/registrar?plano=PREMIUM">Começar grátis</a>
+            </div>
+          </div>
+          <p class="plans-note">Todos os planos incluem 30 dias grátis para testar antes da primeira cobrança.</p>
+        </div>
+      </section>
+
+      <section class="section section--soft" id="faq">
+        <div class="container">
+          <div class="section__head">
+            <p class="eyebrow">Dúvidas frequentes</p>
+            <h2>O que dono de negócio mais pergunta</h2>
+          </div>
+          <div class="faq">
+            <details class="faq-item" open>
+              <summary>A Facilitei fica com uma parte do sinal cobrado do meu cliente?</summary>
+              <p>
+                Não. O sinal cai direto na sua própria conta Asaas (modelo BYOPP — "traga sua própria conta de
+                pagamento"). A Facilitei nunca recebe, guarda ou intermedia esse valor — só aciona a API da
+                Asaas em seu nome, com a sua chave, pra gerar a cobrança e confirmar a reserva.
+              </p>
+            </details>
+            <details class="faq-item">
+              <summary>Preciso ter conta na Asaas para usar a Facilitei?</summary>
+              <p>
+                Sim, para cobrar o sinal via Pix você precisa de uma conta na Asaas (gratuita) e colar sua
+                chave de API no painel. Sem sinal configurado, a reserva ainda funciona normalmente, só que
+                sem cobrança antecipada.
+              </p>
+            </details>
+            <details class="faq-item">
+              <summary>Quanto custa a Facilitei?</summary>
+              <p>
+                Três planos fixos por mês, sem taxa por agendamento: Básico R$49 (até 2 profissionais),
+                Profissional R$89 (até 5 profissionais) e Premium R$149 (profissionais ilimitados). Todos com
+                30 dias grátis para testar.
+              </p>
+            </details>
+            <details class="faq-item">
+              <summary>Meu cliente final precisa instalar algum aplicativo?</summary>
+              <p>
+                Não. O cliente agenda direto pelo navegador, pelo link público do seu negócio
+                (<code>facilitei.com.br/agendar/seu-negocio</code>), escolhe o serviço, o profissional e o
+                horário, e paga o sinal via Pix na mesma tela.
+              </p>
+            </details>
+            <details class="faq-item">
+              <summary>Posso cancelar a assinatura quando quiser?</summary>
+              <p>Sim, o cancelamento é feito direto pelo painel, a qualquer momento, sem multa ou contrato de fidelidade.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="cta-final">
+            <h2>Comece a receber o sinal direto na sua conta hoje</h2>
+            <p>30 dias grátis, sem cartão de crédito. Cadastre seu negócio e gere seu link em minutos.</p>
+            <a class="btn btn--primary" href="/auth/registrar">Criar minha conta grátis</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <div class="site-footer__inner">
+          <div class="site-footer__brand">
+            <img src="assets/logo-mark.svg" alt="" width="28" height="28" />
+            <span>Facilitei</span>
+          </div>
+          <!--
+            Termos de Uso e Politica de Privacidade (docs/termos-de-uso.md,
+            docs/politica-de-privacidade.md) ainda tem campos pendentes de
+            revisao juridica (ver ROADMAP.md) - os links abaixo apontam pra
+            onde essas paginas vao morar quando publicadas de verdade como
+            HTML, nao pro markdown-fonte no repositorio.
+          -->
+          <nav>
+            <a href="#como-funciona">Como funciona</a>
+            <a href="#planos">Planos</a>
+            <a href="#faq">Dúvidas</a>
+            <a href="/auth/login">Entrar</a>
+            <a href="/termos">Termos de Uso</a>
+            <a href="/privacidade">Política de Privacidade</a>
+          </nav>
+        </div>
+        <p class="site-footer__legal">
+          Facilitei — plataforma de agendamento online. O sinal do agendamento é processado via Pix, direto
+          na conta Asaas de cada negócio (modelo BYOPP) — a Facilitei não é instituição financeira nem
+          intermediária de pagamento.
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      // Progressivo: so o menu mobile depende de JS, todo o resto (inclusive o FAQ, via <details>) funciona sem.
+      var toggle = document.querySelector('.nav-toggle');
+      var nav = document.querySelector('.site-nav');
+      if (toggle && nav) {
+        toggle.addEventListener('click', function () {
+          var isOpen = nav.classList.toggle('is-open');
+          toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+      }
+    </script>
+  </body>
+</html>

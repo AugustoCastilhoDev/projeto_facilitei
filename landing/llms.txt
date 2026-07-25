@@ -1,0 +1,33 @@
+# Facilitei
+
+> Plataforma de agendamento online com cobrança de sinal via Pix, feita para pequenos negócios de serviço
+> (barbearias, salões de beleza, estúdios de estética). O sinal do agendamento cai direto na conta Asaas do
+> próprio negócio — a Facilitei nunca recebe, guarda ou intermedia esse valor (modelo "traga sua própria
+> conta de pagamento", BYOPP). A Facilitei não é uma instituição financeira nem um Iniciador de Transação de
+> Pagamento (ITP).
+
+## O que é
+
+- Cada negócio cadastra seus serviços, profissionais e horário de funcionamento, e ganha um link público de
+  agendamento (`facilitei.com.br/agendar/{slug-do-negocio}`).
+- O cliente final agenda direto pelo navegador nesse link, sem precisar instalar nada ou criar conta: escolhe
+  serviço, profissional e horário, e paga o sinal via Pix na mesma tela, quando o serviço exigir sinal.
+- O dono do negócio paga uma assinatura mensal fixa à Facilitei pelo uso da plataforma (não uma comissão por
+  agendamento) — três planos: Básico (R$49/mês, até 2 profissionais), Profissional (R$89/mês, até 5
+  profissionais) e Premium (R$149/mês, profissionais ilimitados), todos com 30 dias grátis.
+
+## Para quem
+
+Donos de barbearia, salão de beleza, estúdio de estética e negócios de serviço parecidos que hoje agendam por
+WhatsApp/telefone e querem cobrar o sinal automaticamente, sem depender de link de pagamento de terceiros.
+
+## Perguntas comuns
+
+Ver a seção de perguntas frequentes em https://facilitei.com.br/#faq (também marcada com dados estruturados
+`FAQPage` na própria página).
+
+## Páginas
+
+- Site institucional: https://facilitei.com.br/
+- Cadastro de negócio: https://facilitei.com.br/auth/registrar
+- Login do painel: https://facilitei.com.br/auth/login
