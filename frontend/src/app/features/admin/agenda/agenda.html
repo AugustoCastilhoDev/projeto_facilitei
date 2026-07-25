@@ -54,7 +54,7 @@
                 <app-status-chip [tone]="toneDoStatusSlot(slot.status)" [label]="slot.status" />
               </td>
               <td>
-                @if (slot.bookingId) {
+                @if (slot.bookingId && slot.status !== 'DISPONIVEL') {
                   {{ slot.clienteNome }} ({{ slot.clienteTelefone }})
                   @if (slot.compareceu === true) {
                     <app-status-chip tone="success" label="Compareceu" />

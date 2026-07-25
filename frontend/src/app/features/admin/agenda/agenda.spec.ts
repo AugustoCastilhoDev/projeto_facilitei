@@ -91,4 +91,34 @@ describe('Agenda', () => {
 
     httpMock.expectNone((r) => r.url.includes('/bookings/7/cancelar'));
   });
+
+  /**
+   * Reserva expirada/cancelada libera o slot de volta para DISPONIVEL (ver
+   * BookingExpirationScheduler no backend), mas o booking em si continua
+   * existindo com o nome/telefone do cliente - mostrar esses dados junto de
+   * um slot ja disponivel de novo e enganoso (parece ocupado sem estar).
+   */
+  it('nao exibe nome/telefone do cliente quando o slot ja voltou a ficar disponivel', () => {
+    component['grupos'].set([
+      {
+        data: '2026-07-23',
+        slots: [slotComReserva({ status: 'DISPONIVEL', statusReserva: 'EXPIRADO' })],
+      },
+    ]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain('Cliente Teste');
+  });
+
+  it('exibe nome/telefone do cliente quando o slot ainda esta reservado/confirmado', () => {
+    component['grupos'].set([
+      {
+        data: '2026-07-23',
+        slots: [slotComReserva({ status: 'CONFIRMADO', statusReserva: 'PAGO' })],
+      },
+    ]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Cliente Teste');
+  });
 });
