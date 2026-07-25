@@ -1,5 +1,6 @@
 package com.castilhodigital.facilitei.booking;
 
+import com.castilhodigital.facilitei.cliente.Cliente;
 import com.castilhodigital.facilitei.common.BaseEntity;
 import com.castilhodigital.facilitei.scheduling.Slot;
 import jakarta.persistence.Column;
@@ -8,6 +9,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -29,6 +31,16 @@ public class Booking extends BaseEntity {
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "slot_id", nullable = false, unique = true)
     private Slot slot;
+
+    /**
+     * Vinculo opcional ao Cliente autenticado do portal (nulo para reservas
+     * feitas pelo link direto /agendar/:slug, sem login - ver
+     * PublicBookingController). Sem backfill: reservas anteriores a esta
+     * feature ficam com cliente nulo para sempre.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cliente_id")
+    private Cliente cliente;
 
     @Column(name = "cliente_nome", nullable = false)
     private String clienteNome;

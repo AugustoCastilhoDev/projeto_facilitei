@@ -1,0 +1,45 @@
+.portal-login-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  min-height: 100vh;
+  padding: 16px;
+  background: radial-gradient(circle at 50% 0%, var(--mat-sys-primary-container) 0%, transparent 60%);
+}
+
+.portal-login-brand {
+  margin-bottom: 4px;
+}
+
+.portal-login-card {
+  width: 100%;
+  max-width: 420px;
+}
+
+.explicacao {
+  margin: 0 0 16px;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.875rem;
+}
+
+.campo {
+  width: 100%;
+}
+
+.erro {
+  color: var(--mat-sys-error);
+  margin: 0 0 8px;
+  font-size: 0.875rem;
+}
+
+.botao-entrar {
+  width: 100%;
+}
+
+.acoes-secundarias {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}

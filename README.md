@@ -45,14 +45,15 @@ backend/src/main/java/com/castilhodigital/facilitei/
 ```
 frontend/src/app/
 ├── core/
-│   ├── guards/         # authGuard (protege /admin)
-│   ├── interceptors/   # authInterceptor (anexa Bearer só em chamadas /api/admin)
+│   ├── guards/         # authGuard (protege /admin) + portalAuthGuard (protege /portal)
+│   ├── interceptors/   # authInterceptor (Bearer em /api/admin) + portalAuthInterceptor (Bearer em /api/portal)
 │   ├── models/         # Interfaces TypeScript espelhando os DTOs do backend
-│   └── services/       # HttpClient wrappers (um por domínio: auth, service-offering, slot, public-booking)
+│   └── services/       # HttpClient wrappers (um por domínio: auth, service-offering, slot, public-booking, portal-*)
 └── features/
-    ├── auth/            # Login + registro (onboarding self-service)
-    ├── admin/           # Shell (Dashboard) + Agenda + Serviços + Profissionais + Pagamentos (lazy-loaded)
-    └── public-booking/  # Página pública de agendamento (lazy-loaded)
+    ├── auth/            # Login + registro (onboarding self-service) do dono do negócio
+    ├── admin/           # Shell (Dashboard) + Agenda + Serviços + Profissionais + Pagamentos + Diretório (lazy-loaded)
+    ├── public-booking/  # Página pública de agendamento por link direto /agendar/:slug (lazy-loaded)
+    └── portal/          # Portal do cliente final: login por telefone/OTP, diretório, agendamento cross-tenant, histórico
 ```
 
 Todas as rotas usam `loadComponent`/`loadChildren` (lazy loading) e `withComponentInputBinding()` — parâmetros de rota (`:slug`, `:bookingId`) chegam direto como `input()` do componente, sem precisar ler `ActivatedRoute` manualmente.
@@ -60,6 +61,12 @@ Todas as rotas usam `loadComponent`/`loadChildren` (lazy loading) e `withCompone
 ### Landing page — HTML/CSS estático, deliberadamente sem framework
 
 [`landing/`](landing/index.html) é a página institucional (fora do app Angular), pensada pra ser 100% indexável por buscadores e agentes de IA: como o app é uma SPA renderizada no navegador, um crawler que não executa JavaScript não veria nenhum conteúdo dela. A landing usa a mesma paleta/tipografia do app (`frontend/src/theme-colors.scss`, Manrope + Roboto), tem SEO básico (meta tags, `sitemap.xml`, `robots.txt`) e GEO/AEO (dados estruturados JSON-LD `SoftwareApplication`/`FAQPage`, `llms.txt`) — ver `landing/` para o conteúdo completo. Sem build step: é só HTML/CSS (+ um JS mínimo e opcional pro menu mobile), zero dependência nova.
+
+### Portal do cliente — login por telefone (WhatsApp OTP), complemento ao link direto
+
+Além do link fixo `/agendar/:slug` de cada negócio, o cliente final pode logar numa conta própria (`/portal/**`) por telefone + código de verificação de 6 dígitos via WhatsApp (`ClienteAuthController`, sem senha), navegar um **diretório** dos negócios que optaram por aparecer (`GET /api/public/directory` — opt-in via `tenants.visivel_no_diretorio`, `DEFAULT FALSE`: nenhum tenant existente aparece até o dono ativar na aba "Diretório" do painel) e agendar cruzando vários negócios, com histórico próprio em "Minhas reservas". O modelo é deliberadamente **complementar**: o link direto continua sendo o principal.
+
+Tecnicamente, o cliente final é uma entidade `Cliente` separada do `User` (dono do negócio) — o JWT do cliente carrega `role=CLIENTE` e `clienteId`, mas **nunca `tenantId`** (o cliente não está preso a um único negócio), então os endpoints do portal (`/api/portal/**`) nunca aceitam `clienteId` via path/body — sempre resolvido a partir do JWT, o que elimina o vetor de IDOR pela própria forma da API, sem precisar de um guard equivalente ao `TenantSecurityGuard`. O código OTP nunca é gravado em texto puro (mesmo `PasswordEncoder`/BCrypt da senha do admin) e o envio via WhatsApp reaproveita o `NotificationService`/MyZap já existente (provider `console` em dev/CI, que só loga o código).
 
 ### Multi-tenancy e segurança
 
@@ -94,12 +101,17 @@ tenants (negócio) ──< users (admin, role fixa)
         │        │                                             │
         │        └──< slots (data/hora, serviço, status) ──────┘
         │                 │
-        │                 └── 1:1 bookings (cliente final, status pagamento, dados Pix)
+        │                 └── 1:1 bookings (cliente final, status pagamento, dados Pix) ──> clientes (opcional)
+        │
+        └── categoria/cidade/descricao/visivel_no_diretorio (opt-in no diretório do portal)
+
+clientes (telefone único, sem senha) ──< codigos_verificacao (OTP, hash, expiração, tentativas)
 ```
 
 - Um **slot** pertence a um profissional e a um serviço, e é gerado automaticamente (`SlotGenerationService`) a partir do expediente do profissional + duração do serviço escolhido.
 - Cada **profissional** tem seu próprio expediente (horário de abertura/fechamento) e uma lista própria de serviços que realiza (`profissional_servicos`) — dois negócios diferentes podem ter profissionais com turnos completamente distintos. Dois serviços do **mesmo** profissional não podem ter reservas em horários que se sobrepõem; profissionais diferentes têm agendas independentes (ver decisão técnica abaixo).
 - `bookings.status_pagamento` cobre `PENDENTE`, `PAGO`, `SEM_SINAL` (serviço sem sinal, pagamento no local), `EXPIRADO` e `CANCELADO`.
+- `bookings.cliente_id` é opcional e **sem backfill**: só reservas feitas pelo portal autenticado (`/api/portal/reservas`) ficam vinculadas a um `Cliente`; reservas antigas (ou feitas pelo link direto sem login) ficam com `cliente_id` nulo para sempre — um match automático por telefone arriscaria juntar duas pessoas diferentes por engano, já que `clienteTelefone` histórico nunca foi validado/normalizado de forma consistente.
 - `tenants` guarda `asaas_api_key` e `asaas_webhook_token` (ambos cifrados) — a própria credencial Asaas do tenant, não da plataforma. Ver "Recebimento de pagamentos (BYOPP)" abaixo.
 
 ## Decisões técnicas

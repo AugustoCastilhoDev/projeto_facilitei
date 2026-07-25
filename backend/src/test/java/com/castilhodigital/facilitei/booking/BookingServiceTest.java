@@ -6,6 +6,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.castilhodigital.facilitei.cliente.Cliente;
 import com.castilhodigital.facilitei.common.exception.EntidadeNaoEncontradaException;
 import com.castilhodigital.facilitei.common.exception.RegraDeNegocioException;
 import com.castilhodigital.facilitei.notification.NotificationService;
@@ -252,6 +253,46 @@ class BookingServiceTest {
         var resultado = bookingService.buscarPorSlotIds(List.of(1L, 2L));
 
         assertThat(resultado).containsEntry(1L, booking1).containsEntry(2L, booking2);
+    }
+
+    @Test
+    void criarReservaComClienteAutenticadoVinculaOClienteNaReserva() {
+        Slot slot = new Slot();
+        ReflectionTestUtils.setField(slot, "id", 7L);
+        when(slotService.reservar(7L)).thenReturn(slot);
+        when(bookingRepository.save(org.mockito.ArgumentMatchers.any(Booking.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Cliente cliente = new Cliente();
+        cliente.setTelefone("5563999999999");
+        ReflectionTestUtils.setField(cliente, "id", 3L);
+
+        Booking booking = bookingService.criarReserva(7L, cliente, "Maria", "5563999999999", "11111111111");
+
+        assertThat(booking.getCliente()).isSameAs(cliente);
+        assertThat(booking.getClienteNome()).isEqualTo("Maria");
+        verify(notificationService).enviar(org.mockito.ArgumentMatchers.eq("5563999999999"), org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void criarReservaSemClienteAutenticadoDeixaClienteNulo() {
+        Slot slot = new Slot();
+        ReflectionTestUtils.setField(slot, "id", 7L);
+        when(slotService.reservar(7L)).thenReturn(slot);
+        when(bookingRepository.save(org.mockito.ArgumentMatchers.any(Booking.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Booking booking = bookingService.criarReserva(7L, "Maria", "5563999999999", "11111111111");
+
+        assertThat(booking.getCliente()).isNull();
+    }
+
+    @Test
+    void listarPorClienteDelegaParaORepositorio() {
+        Booking booking = new Booking();
+        when(bookingRepository.findByCliente_IdOrderBySlot_DataHoraDesc(3L)).thenReturn(List.of(booking));
+
+        assertThat(bookingService.listarPorCliente(3L)).containsExactly(booking);
     }
 
 }

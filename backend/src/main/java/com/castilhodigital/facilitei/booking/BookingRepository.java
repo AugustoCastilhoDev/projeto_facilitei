@@ -31,6 +31,17 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findBySlotIdIn(List<Long> slotIds);
 
     /**
+     * Historico de reservas do cliente autenticado no portal (ver
+     * PortalBookingController), mais recente primeiro. JOIN FETCH em
+     * slot+service+tenant porque a tela do portal mostra negocio/servico/
+     * horario, e o controller le esses campos fora da transacao original
+     * (open-in-view: false) - mesma necessidade de findParaRelatorio.
+     */
+    @Query("SELECT b FROM Booking b JOIN FETCH b.slot s JOIN FETCH s.service JOIN FETCH s.tenant "
+            + "WHERE b.cliente.id = :clienteId ORDER BY s.dataHora DESC")
+    List<Booking> findByCliente_IdOrderBySlot_DataHoraDesc(@Param("clienteId") Long clienteId);
+
+    /**
      * Reservas pendentes cujo horario do slot esta a "limite" de distancia
      * ou ja passou - usado por BookingExpirationScheduler para expirar
      * reservas nao pagas antes do proprio compromisso acontecer (o

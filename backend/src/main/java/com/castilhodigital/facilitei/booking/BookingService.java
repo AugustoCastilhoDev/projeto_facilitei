@@ -1,5 +1,6 @@
 package com.castilhodigital.facilitei.booking;
 
+import com.castilhodigital.facilitei.cliente.Cliente;
 import com.castilhodigital.facilitei.common.exception.EntidadeNaoEncontradaException;
 import com.castilhodigital.facilitei.common.exception.RegraDeNegocioException;
 import com.castilhodigital.facilitei.notification.NotificationService;
@@ -31,10 +32,23 @@ public class BookingService {
 
     @Transactional
     public Booking criarReserva(Long slotId, String clienteNome, String clienteTelefone, String clienteCpfCnpj) {
+        return criarReservaInterna(slotId, null, clienteNome, clienteTelefone, clienteCpfCnpj);
+    }
+
+    /** Overload usado pelo portal do cliente: reserva vinculada a um Cliente autenticado (ver PortalBookingController). */
+    @Transactional
+    public Booking criarReserva(Long slotId, Cliente cliente, String clienteNome, String clienteTelefone,
+                                 String clienteCpfCnpj) {
+        return criarReservaInterna(slotId, cliente, clienteNome, clienteTelefone, clienteCpfCnpj);
+    }
+
+    private Booking criarReservaInterna(Long slotId, Cliente cliente, String clienteNome, String clienteTelefone,
+                                         String clienteCpfCnpj) {
         Slot slot = slotService.reservar(slotId);
 
         Booking booking = new Booking();
         booking.setSlot(slot);
+        booking.setCliente(cliente);
         booking.setClienteNome(clienteNome);
         booking.setClienteTelefone(clienteTelefone);
         booking.setClienteCpfCnpj(clienteCpfCnpj);
@@ -211,6 +225,12 @@ public class BookingService {
     public Map<Long, Booking> buscarPorSlotIds(List<Long> slotIds) {
         return bookingRepository.findBySlotIdIn(slotIds).stream()
                 .collect(Collectors.toMap(booking -> booking.getSlot().getId(), Function.identity()));
+    }
+
+    /** Historico de reservas do cliente autenticado no portal - so reservas feitas ja logado, sem backfill do que veio antes. */
+    @Transactional(readOnly = true)
+    public List<Booking> listarPorCliente(Long clienteId) {
+        return bookingRepository.findByCliente_IdOrderBySlot_DataHoraDesc(clienteId);
     }
 
 }

@@ -1,8 +1,10 @@
 package com.castilhodigital.facilitei.common;
 
 import com.castilhodigital.facilitei.common.exception.AcessoNegadoException;
+import com.castilhodigital.facilitei.common.exception.CodigoVerificacaoInvalidoException;
 import com.castilhodigital.facilitei.common.exception.CredenciaisInvalidasException;
 import com.castilhodigital.facilitei.common.exception.EntidadeNaoEncontradaException;
+import com.castilhodigital.facilitei.common.exception.EnvioNotificacaoFalhouException;
 import com.castilhodigital.facilitei.common.exception.LimiteDeRequisicoesExcedidoException;
 import com.castilhodigital.facilitei.common.exception.RegraDeNegocioException;
 import com.castilhodigital.facilitei.payment.PaymentGatewayException;
@@ -63,6 +65,19 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(LimiteDeRequisicoesExcedidoException.class)
     public ProblemDetail handleLimiteDeRequisicoes(LimiteDeRequisicoesExcedidoException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage());
+    }
+
+    @ExceptionHandler(CodigoVerificacaoInvalidoException.class)
+    public ProblemDetail handleCodigoVerificacaoInvalido(CodigoVerificacaoInvalidoException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    @ExceptionHandler(EnvioNotificacaoFalhouException.class)
+    public ProblemDetail handleEnvioNotificacaoFalhou(EnvioNotificacaoFalhouException ex) {
+        log.error("Falha ao enviar notificacao sincrona (ex.: codigo de verificacao)", ex);
+        Sentry.captureException(ex);
+        return ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_GATEWAY, "Nao foi possivel enviar o codigo por WhatsApp agora. Tente novamente em instantes.");
     }
 
     @ExceptionHandler(PaymentGatewayException.class)

@@ -1,0 +1,22 @@
+.reservas-toolbar {
+  background: var(--mat-sys-surface);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  gap: 8px;
+}
+
+.titulo-toolbar {
+  font-weight: 700;
+  font-family: 'Manrope', Roboto, sans-serif;
+}
+
+.reservas-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.lista-reservas {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

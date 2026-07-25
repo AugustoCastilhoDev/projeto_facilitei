@@ -64,4 +64,23 @@ public class TenantService {
         return tenant;
     }
 
+    /**
+     * O tenant so pode aparecer no diretorio publico (visivelNoDiretorio =
+     * true) com categoria e cidade ja preenchidas - sem isso a listagem
+     * ficaria com cards vazios/inuteis para o cliente final escolher.
+     */
+    @Transactional
+    public Tenant atualizarDiretorio(Long tenantId, CategoriaNegocio categoria, String cidade, String descricao,
+                                      boolean visivelNoDiretorio) {
+        Tenant tenant = buscarPorId(tenantId);
+        if (visivelNoDiretorio && (categoria == null || cidade == null || cidade.isBlank())) {
+            throw new RegraDeNegocioException("Categoria e cidade sao obrigatorias para aparecer no diretorio.");
+        }
+        tenant.setCategoria(categoria);
+        tenant.setCidade(cidade);
+        tenant.setDescricao(descricao);
+        tenant.setVisivelNoDiretorio(visivelNoDiretorio);
+        return tenant;
+    }
+
 }

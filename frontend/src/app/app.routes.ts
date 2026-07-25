@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
+import { portalAuthGuard } from './core/guards/portal-auth.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
@@ -16,5 +17,9 @@ export const routes: Routes = [
     path: 'agendar/:slug',
     loadChildren: () =>
       import('./features/public-booking/public-booking.routes').then((m) => m.PUBLIC_BOOKING_ROUTES),
+  },
+  {
+    path: 'portal',
+    loadChildren: () => import('./features/portal/portal.routes').then((m) => m.PORTAL_ROUTES),
   },
 ];

@@ -1,0 +1,75 @@
+<div class="portal-login-page">
+  <app-brand-mark class="portal-login-brand" />
+  <mat-card class="portal-login-card">
+    <mat-card-header>
+      <mat-card-title>
+        @if (etapa() === 'telefone') {
+          Entrar no portal do cliente
+        } @else {
+          Confirme o codigo enviado
+        }
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      @if (etapa() === 'telefone') {
+        <form [formGroup]="formTelefone" (ngSubmit)="solicitarCodigo()">
+          <p class="explicacao">Informe seu telefone com WhatsApp para receber um codigo de acesso.</p>
+
+          <mat-form-field appearance="outline" class="campo">
+            <mat-label>Telefone (com DDD)</mat-label>
+            <input matInput type="tel" formControlName="telefone" autocomplete="tel" placeholder="63999999999" />
+            @if (formTelefone.controls.telefone.hasError('required') && formTelefone.controls.telefone.touched) {
+              <mat-error>Telefone e obrigatorio.</mat-error>
+            }
+          </mat-form-field>
+
+          @if (erro()) {
+            <p class="erro">{{ erro() }}</p>
+          }
+
+          <button mat-flat-button color="primary" type="submit" class="botao-entrar" [disabled]="carregando()">
+            @if (carregando()) {
+              <mat-spinner diameter="20" />
+            } @else {
+              Enviar codigo
+            }
+          </button>
+        </form>
+      } @else {
+        <form [formGroup]="formCodigo" (ngSubmit)="verificarCodigo()">
+          <p class="explicacao">Enviamos um codigo de 6 digitos pelo WhatsApp para {{ telefoneAtual }}.</p>
+
+          <mat-form-field appearance="outline" class="campo">
+            <mat-label>Codigo recebido</mat-label>
+            <input matInput type="text" inputmode="numeric" formControlName="codigo" maxlength="6" />
+            @if (formCodigo.controls.codigo.hasError('required') && formCodigo.controls.codigo.touched) {
+              <mat-error>Codigo e obrigatorio.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="campo">
+            <mat-label>Seu nome (so no primeiro acesso)</mat-label>
+            <input matInput type="text" formControlName="nome" autocomplete="name" />
+          </mat-form-field>
+
+          @if (erro()) {
+            <p class="erro">{{ erro() }}</p>
+          }
+
+          <button mat-flat-button color="primary" type="submit" class="botao-entrar" [disabled]="carregando()">
+            @if (carregando()) {
+              <mat-spinner diameter="20" />
+            } @else {
+              Confirmar codigo
+            }
+          </button>
+
+          <div class="acoes-secundarias">
+            <button mat-button type="button" (click)="voltarParaTelefone()">Trocar telefone</button>
+            <button mat-button type="button" (click)="reenviarCodigo()">Reenviar codigo</button>
+          </div>
+        </form>
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

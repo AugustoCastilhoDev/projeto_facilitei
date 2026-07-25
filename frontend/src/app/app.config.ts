@@ -5,6 +5,7 @@ import { provideRouter, withComponentInputBinding, withRouterConfig } from '@ang
 
 import { routes } from './app.routes';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { portalAuthInterceptor } from './core/interceptors/portal-auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -15,7 +16,7 @@ export const appConfig: ApplicationConfig = {
     // precisa herdar o :slug do pai mesmo tendo path proprio (o default
     // 'emptyOnly' so herda em rotas filhas de path vazio).
     provideRouter(routes, withComponentInputBinding(), withRouterConfig({ paramsInheritanceStrategy: 'always' })),
-    provideHttpClient(withInterceptors([authInterceptor])),
+    provideHttpClient(withInterceptors([authInterceptor, portalAuthInterceptor])),
     // @angular/animations e provideAnimationsAsync estao deprecated desde o
     // Angular 20.2 (substituidos por animate.enter/animate.leave), com
     // remocao prevista para a v23 - mas ainda sao o caminho suportado hoje

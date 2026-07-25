@@ -1,0 +1,183 @@
+<mat-toolbar class="negocio-toolbar">
+  <button mat-icon-button (click)="irParaMinhasReservas()" aria-label="Minhas reservas">
+    <mat-icon>arrow_back</mat-icon>
+  </button>
+  <span class="tenant-nome">{{ tenant()?.nome ?? 'Facilitei' }}</span>
+  <span class="spacer"></span>
+  <app-brand-mark variant="compact" />
+</mat-toolbar>
+
+<div class="negocio-content">
+  @if (carregandoInicial()) {
+    <app-loading-block />
+  } @else if (erroInicial()) {
+    <mat-card>
+      <mat-card-content>
+        <p class="erro">{{ erroInicial() }}</p>
+      </mat-card-content>
+    </mat-card>
+  } @else {
+    @switch (etapa()) {
+      @case ('servicos') {
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>Escolha um servico</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            @if (servicos().length === 0) {
+              <app-empty-state icon="event_busy" message="Nenhum servico disponivel para agendamento no momento." />
+            } @else {
+              <div class="lista-servicos">
+                @for (servico of servicos(); track servico.id) {
+                  <button type="button" class="item-servico" (click)="selecionarServico(servico)">
+                    <span class="nome">{{ servico.nome }}</span>
+                    <span class="detalhes">
+                      {{ servico.duracaoMin }} min &middot; R$ {{ servico.preco | number: '1.2-2' }}
+                    </span>
+                  </button>
+                }
+              </div>
+            }
+          </mat-card-content>
+        </mat-card>
+      }
+
+      @case ('profissionais') {
+        <mat-card>
+          <mat-card-header>
+            <button mat-icon-button (click)="voltarParaServicos()" aria-label="Voltar">
+              <mat-icon>arrow_back</mat-icon>
+            </button>
+            <mat-card-title>Escolha um profissional</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            @if (carregandoProfissionais()) {
+              <app-loading-block />
+            } @else if (profissionais().length === 0) {
+              <app-empty-state icon="badge" message="Nenhum profissional disponivel para este servico no momento." />
+            } @else {
+              <div class="lista-servicos">
+                @for (profissional of profissionais(); track profissional.id) {
+                  <button type="button" class="item-servico" (click)="selecionarProfissional(profissional)">
+                    <span class="nome">{{ profissional.nome }}</span>
+                  </button>
+                }
+              </div>
+            }
+          </mat-card-content>
+        </mat-card>
+      }
+
+      @case ('horarios') {
+        <mat-card>
+          <mat-card-header>
+            <button mat-icon-button (click)="voltarParaProfissionais()" aria-label="Voltar">
+              <mat-icon>arrow_back</mat-icon>
+            </button>
+            <mat-card-title>{{ servicoSelecionado()?.nome }} &middot; {{ profissionalSelecionado()?.nome }}</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <input type="date" class="campo-data" [value]="data()" (change)="onDataChange($event)" />
+
+            @if (carregandoSlots()) {
+              <app-loading-block />
+            } @else if (slotsDoServico().length === 0) {
+              <app-empty-state icon="schedule" message="Nenhum horario disponivel nesta data." />
+            } @else {
+              <div class="lista-horarios">
+                @for (slot of slotsDoServico(); track slot.id) {
+                  <button type="button" class="item-horario" (click)="selecionarSlot(slot)">
+                    {{ horaDoSlot(slot) }}
+                  </button>
+                }
+              </div>
+            }
+          </mat-card-content>
+        </mat-card>
+      }
+
+      @case ('dados') {
+        <mat-card>
+          <mat-card-header>
+            <button mat-icon-button (click)="voltarParaHorarios()" aria-label="Voltar">
+              <mat-icon>arrow_back</mat-icon>
+            </button>
+            <mat-card-title>Confirme seus dados</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <p class="resumo">
+              {{ servicoSelecionado()?.nome }} &middot; {{ profissionalSelecionado()?.nome }} &middot;
+              {{ horaDoSlot(slotSelecionado()!) }}
+            </p>
+
+            <form [formGroup]="form" (ngSubmit)="confirmarReserva()">
+              <mat-form-field appearance="outline" class="campo">
+                <mat-label>Nome completo</mat-label>
+                <input matInput formControlName="clienteNome" />
+                @if (form.controls.clienteNome.hasError('required') && form.controls.clienteNome.touched) {
+                  <mat-error>Nome e obrigatorio.</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="campo">
+                <mat-label>CPF/CNPJ</mat-label>
+                <input matInput formControlName="clienteCpfCnpj" placeholder="Necessario para gerar a cobranca Pix" />
+                @if (form.controls.clienteCpfCnpj.hasError('required') && form.controls.clienteCpfCnpj.touched) {
+                  <mat-error>CPF/CNPJ e obrigatorio para gerar a cobranca Pix.</mat-error>
+                }
+              </mat-form-field>
+
+              @if (erroEnvio()) {
+                <p class="erro">{{ erroEnvio() }}</p>
+              }
+
+              <button mat-flat-button color="primary" type="submit" class="botao-confirmar" [disabled]="enviando()">
+                @if (enviando()) {
+                  <mat-spinner diameter="20" />
+                } @else {
+                  Confirmar e gerar Pix
+                }
+              </button>
+            </form>
+          </mat-card-content>
+        </mat-card>
+      }
+
+      @case ('confirmacao') {
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>Pagamento do sinal</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            @switch (bookingCriado()?.statusPagamento) {
+              @case ('SEM_SINAL') {
+                <div class="status-pago">
+                  <mat-icon>check_circle</mat-icon>
+                  <p>Reserva confirmada! O pagamento sera feito no local, sem necessidade de sinal.</p>
+                </div>
+              }
+              @default {
+                @if (bookingCriado()?.asaasPixQrCodeBase64) {
+                  <img
+                    class="qrcode"
+                    [src]="'data:image/png;base64,' + bookingCriado()!.asaasPixQrCodeBase64"
+                    alt="QR Code Pix"
+                  />
+                }
+                <p class="pix-payload">{{ bookingCriado()?.asaasPixPayload }}</p>
+                <button mat-stroked-button type="button" (click)="copiarPixPayload()">
+                  <mat-icon>content_copy</mat-icon>
+                  Copiar codigo Pix
+                </button>
+                <p class="aviso-acompanhar">
+                  Depois de pagar, acompanhe a confirmacao em
+                  <button mat-button type="button" (click)="irParaMinhasReservas()">Minhas reservas</button>.
+                </p>
+              }
+            }
+          </mat-card-content>
+        </mat-card>
+      }
+    }
+  }
+</div>

@@ -1,0 +1,69 @@
+.diretorio-toolbar {
+  background: var(--mat-sys-surface);
+  gap: 12px;
+}
+
+.espaco {
+  flex: 1 1 auto;
+}
+
+.saudacao {
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.875rem;
+}
+
+.diretorio-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.titulo {
+  margin: 0 0 4px;
+}
+
+.subtitulo {
+  margin: 0 0 24px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.campo-categoria {
+  width: 200px;
+}
+
+.campo-cidade {
+  width: 200px;
+}
+
+.botao-buscar {
+  margin-top: 8px;
+}
+
+.lista-negocios {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.card-negocio {
+  cursor: pointer;
+  transition: box-shadow 0.15s ease;
+
+  &:hover {
+    box-shadow: var(--mat-sys-level3);
+  }
+}
+
+.descricao {
+  margin: 12px 0 0;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.875rem;
+}

@@ -1,6 +1,7 @@
 package com.castilhodigital.facilitei.booking;
 
 import com.castilhodigital.facilitei.catalog.ServiceOffering;
+import com.castilhodigital.facilitei.cliente.Cliente;
 import com.castilhodigital.facilitei.common.exception.RegraDeNegocioException;
 import com.castilhodigital.facilitei.payment.PaymentGatewayService;
 import com.castilhodigital.facilitei.payment.PixChargeRequest;
@@ -9,6 +10,7 @@ import com.castilhodigital.facilitei.tenant.Tenant;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.Hibernate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,8 +32,30 @@ public class BookingCheckoutService {
     @Transactional
     public CheckoutResult iniciarCheckout(Long slotId, String clienteNome, String clienteTelefone, String clienteCpfCnpj) {
         Booking booking = bookingService.criarReserva(slotId, clienteNome, clienteTelefone, clienteCpfCnpj);
+        return processarCheckout(booking, clienteNome, clienteTelefone, clienteCpfCnpj);
+    }
 
+    /**
+     * Overload usado pelo portal do cliente: o telefone nunca vem do corpo da
+     * requisicao (so do Cliente autenticado, ver PortalBookingController),
+     * para nao confiar em telefone informado livremente por quem chama a API.
+     */
+    @Transactional
+    public CheckoutResult iniciarCheckout(Long slotId, Cliente cliente, String clienteNome, String clienteCpfCnpj) {
+        Booking booking = bookingService.criarReserva(slotId, cliente, clienteNome, cliente.getTelefone(), clienteCpfCnpj);
+        return processarCheckout(booking, clienteNome, cliente.getTelefone(), clienteCpfCnpj);
+    }
+
+    private CheckoutResult processarCheckout(Booking booking, String clienteNome, String clienteTelefone, String clienteCpfCnpj) {
         ServiceOffering service = booking.getSlot().getService();
+        // Hibernate.initialize forca o carregamento do proxy aqui (mesmo no
+        // ramo sem sinal, que nao usa apiKey) porque PortalReservaResponse le
+        // slot.getTenant() fora desta transacao (open-in-view: false) - so
+        // atribuir a variavel NAO inicializa o proxy, so uma chamada de
+        // metodo real faz isso (LazyInitializationException encontrada
+        // testando o fluxo completo via Playwright).
+        Tenant tenant = booking.getSlot().getTenant();
+        Hibernate.initialize(tenant);
         BigDecimal valorSinal = service.getPreco()
                 .multiply(service.getSinalPercentual())
                 .divide(CEM, 2, RoundingMode.HALF_UP);
@@ -44,7 +68,6 @@ public class BookingCheckoutService {
             return new CheckoutResult(bookingConfirmado, null);
         }
 
-        Tenant tenant = booking.getSlot().getTenant();
         String apiKey = tenant.getAsaasApiKey();
         if (apiKey == null || apiKey.isBlank()) {
             // modelo BYOPP: a cobranca sai da conta Asaas do proprio tenant,

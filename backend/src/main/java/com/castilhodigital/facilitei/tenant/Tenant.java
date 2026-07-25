@@ -88,4 +88,23 @@ public class Tenant extends BaseEntity {
     @Column(name = "proxima_cobranca_em")
     private LocalDate proximaCobrancaEm;
 
+    /** Campos do diretorio publico (portal do cliente) - todos opcionais, so preenchidos se o tenant optar por aparecer la. */
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private CategoriaNegocio categoria;
+
+    @Column(length = 100)
+    private String cidade;
+
+    @Column(columnDefinition = "TEXT")
+    private String descricao;
+
+    /**
+     * Opt-in explicito para aparecer no diretorio (GET /api/public/directory).
+     * Default false: nenhum tenant existente aparece la ate escolher - o
+     * diretorio e complemento ao link direto /agendar/:slug, nunca substituto.
+     */
+    @Column(name = "visivel_no_diretorio", nullable = false)
+    private boolean visivelNoDiretorio = false;
+
 }

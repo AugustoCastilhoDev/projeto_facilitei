@@ -1,5 +1,6 @@
 package com.castilhodigital.facilitei.auth;
 
+import com.castilhodigital.facilitei.cliente.Cliente;
 import com.castilhodigital.facilitei.user.User;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -29,6 +30,26 @@ public class JwtService {
                 .subject(user.getEmail())
                 .claim("tenantId", user.getTenant().getId())
                 .claim("role", user.getRole().name())
+                .build();
+
+        return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
+    }
+
+    /**
+     * Token do cliente final do portal - sem claim "tenantId" (omitido, nao
+     * nulo/zero): diferente do admin, o cliente nao esta preso a um unico
+     * tenant, entao o tenant de cada acao e sempre resolvido pelo path da
+     * URL, nao pelo token.
+     */
+    public String gerarTokenCliente(Cliente cliente) {
+        Instant agora = Instant.now();
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuer("facilitei")
+                .issuedAt(agora)
+                .expiresAt(agora.plus(expirationMinutes, ChronoUnit.MINUTES))
+                .subject(cliente.getTelefone())
+                .claim("clienteId", cliente.getId())
+                .claim("role", "CLIENTE")
                 .build();
 
         return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();

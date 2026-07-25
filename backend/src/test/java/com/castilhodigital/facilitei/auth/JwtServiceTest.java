@@ -2,6 +2,7 @@ package com.castilhodigital.facilitei.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.castilhodigital.facilitei.cliente.Cliente;
 import com.castilhodigital.facilitei.tenant.Tenant;
 import com.castilhodigital.facilitei.user.Role;
 import com.castilhodigital.facilitei.user.User;
@@ -61,6 +62,25 @@ class JwtServiceTest {
 
         assertThat(jwt.getExpiresAt()).isAfter(Instant.now());
         assertThat(jwt.getIssuedAt()).isBeforeOrEqualTo(Instant.now());
+    }
+
+    @Test
+    void gerarTokenClienteIncluiClienteIdERoleClienteSemClaimDeTenant() {
+        Cliente cliente = new Cliente();
+        cliente.setTelefone("5563999999999");
+        cliente.setNome("Maria");
+        ReflectionTestUtils.setField(cliente, "id", 3L);
+
+        String token = jwtService.gerarTokenCliente(cliente);
+        Jwt jwt = jwtDecoder.decode(token);
+
+        assertThat(jwt.getSubject()).isEqualTo("5563999999999");
+        assertThat(jwt.getClaimAsString("role")).isEqualTo("CLIENTE");
+
+        Number clienteId = jwt.getClaim("clienteId");
+        assertThat(clienteId.longValue()).isEqualTo(3L);
+
+        assertThat(jwt.hasClaim("tenantId")).isFalse();
     }
 
 }

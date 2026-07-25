@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.castilhodigital.facilitei.catalog.ServiceOffering;
+import com.castilhodigital.facilitei.cliente.Cliente;
 import com.castilhodigital.facilitei.common.exception.RegraDeNegocioException;
 import com.castilhodigital.facilitei.payment.PaymentGatewayService;
 import com.castilhodigital.facilitei.payment.PixChargeRequest;
@@ -158,6 +159,37 @@ class BookingCheckoutServiceTest {
 
         assertThat(resultado.qrCodeImagemBase64()).isNull();
         verify(paymentGatewayService, never()).buscarQrCodePix(any(), any());
+    }
+
+    @Test
+    void iniciarCheckoutComClienteAutenticadoUsaOTelefoneDoClienteNaoDaRequisicao() {
+        ServiceOffering service = new ServiceOffering();
+        service.setPreco(new BigDecimal("100.00"));
+        service.setSinalPercentual(new BigDecimal("25.00"));
+
+        Slot slot = new Slot();
+        slot.setService(service);
+        slot.setTenant(tenantComChaveConfigurada());
+
+        Booking booking = new Booking();
+        booking.setSlot(slot);
+        ReflectionTestUtils.setField(booking, "id", 5L);
+
+        Cliente cliente = new Cliente();
+        cliente.setTelefone("5563999999999");
+        ReflectionTestUtils.setField(cliente, "id", 3L);
+
+        when(bookingService.criarReserva(1L, cliente, "Cliente", "5563999999999", "111.111.111-11")).thenReturn(booking);
+        when(paymentGatewayService.criarCobrancaPix(eq(API_KEY_TENANT), any()))
+                .thenReturn(new PixChargeResult("pay_1", "payload-x", "base64-y"));
+        when(bookingService.buscarPorId(5L)).thenReturn(booking);
+
+        CheckoutResult resultado = checkoutService.iniciarCheckout(1L, cliente, "Cliente", "111.111.111-11");
+
+        ArgumentCaptor<PixChargeRequest> captor = ArgumentCaptor.forClass(PixChargeRequest.class);
+        verify(paymentGatewayService).criarCobrancaPix(eq(API_KEY_TENANT), captor.capture());
+        assertThat(captor.getValue().clienteTelefone()).isEqualTo("5563999999999");
+        assertThat(resultado.booking()).isSameAs(booking);
     }
 
 }

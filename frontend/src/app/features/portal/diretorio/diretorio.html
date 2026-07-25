@@ -1,0 +1,67 @@
+<mat-toolbar class="diretorio-toolbar">
+  <app-brand-mark variant="compact" />
+  <span class="espaco"></span>
+  @if (nomeCliente) {
+    <span class="saudacao">Ola, {{ nomeCliente }}</span>
+  }
+  <button mat-button (click)="irParaMinhasReservas()">Minhas reservas</button>
+  <button mat-button (click)="sair()">Sair</button>
+</mat-toolbar>
+
+<div class="diretorio-page">
+  <h1 class="titulo">Encontre um negocio</h1>
+  <p class="subtitulo">Escolha um estabelecimento cadastrado na plataforma para agendar um horario.</p>
+
+  <form [formGroup]="form" (ngSubmit)="buscar()" class="filtros">
+    <mat-form-field appearance="outline" class="campo-categoria">
+      <mat-label>Categoria</mat-label>
+      <mat-select formControlName="categoria">
+        <mat-option value="">Todas</mat-option>
+        @for (item of categorias; track item[0]) {
+          <mat-option [value]="item[0]">{{ item[1] }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="campo-cidade">
+      <mat-label>Cidade</mat-label>
+      <input matInput type="text" formControlName="cidade" placeholder="Palmas" />
+    </mat-form-field>
+
+    <button mat-flat-button color="primary" type="submit" class="botao-buscar">Buscar</button>
+  </form>
+
+  @if (carregando()) {
+    <app-loading-block />
+  } @else if (erro()) {
+    <app-empty-state icon="error_outline" [message]="erro()!" />
+  } @else if (negocios().length === 0) {
+    <app-empty-state
+      icon="storefront"
+      message="Nenhum negocio encontrado com esses filtros. Tente ajustar a busca." />
+  } @else {
+    <div class="lista-negocios">
+      @for (negocio of negocios(); track negocio.slug) {
+        <mat-card class="card-negocio" (click)="abrirNegocio(negocio.slug)">
+          <mat-card-header>
+            <mat-card-title>{{ negocio.nome }}</mat-card-title>
+            @if (negocio.cidade) {
+              <mat-card-subtitle>{{ negocio.cidade }}</mat-card-subtitle>
+            }
+          </mat-card-header>
+          <mat-card-content>
+            @if (rotuloCategoria(negocio.categoria); as rotulo) {
+              <app-status-chip tone="info" [label]="rotulo" />
+            }
+            @if (negocio.descricao) {
+              <p class="descricao">{{ negocio.descricao }}</p>
+            }
+          </mat-card-content>
+          <mat-card-actions>
+            <button mat-button color="primary">Ver horarios</button>
+          </mat-card-actions>
+        </mat-card>
+      }
+    </div>
+  }
+</div>

@@ -1,0 +1,32 @@
+<mat-toolbar class="reservas-toolbar">
+  <button mat-icon-button (click)="voltarParaDiretorio()" aria-label="Voltar ao diretorio">
+    <mat-icon>arrow_back</mat-icon>
+  </button>
+  <span class="titulo-toolbar">Minhas reservas</span>
+</mat-toolbar>
+
+<div class="reservas-page">
+  @if (carregando()) {
+    <app-loading-block />
+  } @else if (erro()) {
+    <app-empty-state icon="error_outline" [message]="erro()!" />
+  } @else if (reservas().length === 0) {
+    <app-empty-state
+      icon="event_busy"
+      message="Voce ainda nao tem nenhuma reserva. Volte ao diretorio para agendar." />
+  } @else {
+    <div class="lista-reservas">
+      @for (reserva of reservas(); track reserva.id) {
+        <mat-card class="card-reserva">
+          <mat-card-header>
+            <mat-card-title>{{ reserva.tenantNome }}</mat-card-title>
+            <mat-card-subtitle>{{ reserva.serviceNome }} &middot; {{ dataHoraFormatada(reserva) }}</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <app-status-chip [tone]="toneDoStatus(reserva.statusPagamento)" [label]="rotuloStatus(reserva.statusPagamento)" />
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+  }
+</div>

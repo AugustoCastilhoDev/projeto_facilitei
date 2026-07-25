@@ -22,6 +22,9 @@ import org.springframework.security.web.SecurityFilterChain;
  *   servico de uptime externo (ex.: UptimeRobot) vai chamar sem JWT quando
  *   houver deploy em producao.
  * - /api/admin/** exige um JWT valido com role ADMIN.
+ * - /api/portal/** exige um JWT valido com role CLIENTE - token distinto do
+ *   admin (sem claim "tenantId", ver JwtService.gerarTokenCliente), emitido
+ *   apos verificar o codigo OTP em /api/auth/portal/verificar-codigo.
  * - Sessao stateless: cada request carrega seu proprio JWT, sem estado de
  *   sessao no servidor (pre-requisito para escalar horizontalmente sem
  *   sticky sessions).
@@ -47,6 +50,7 @@ public class SecurityConfig {
                                 "/api/auth/**", "/api/public/**", "/api/webhooks/**", "/error", "/actuator/health/**")
                         .permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/portal/**").hasRole("CLIENTE")
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))

@@ -1,0 +1,57 @@
+@if (carregando()) {
+  <app-loading-block />
+} @else {
+  <mat-card class="card-status">
+    <mat-card-content>
+      <app-status-chip
+        [tone]="form.controls.visivelNoDiretorio.value ? 'success' : 'neutral'"
+        [label]="form.controls.visivelNoDiretorio.value ? 'Visivel no diretorio' : 'Nao aparece no diretorio'"
+      />
+      <p class="explicacao">
+        O diretorio e uma vitrine adicional dentro do portal do cliente, complementar ao seu link direto de
+        agendamento (que continua funcionando normalmente para quem ja o tem). Preencha categoria e cidade para
+        poder ativar.
+      </p>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="card-formulario">
+    <mat-card-header>
+      <mat-card-title>Dados do diretorio</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="form" (ngSubmit)="salvar()">
+        <mat-form-field appearance="outline" class="campo">
+          <mat-label>Categoria</mat-label>
+          <mat-select formControlName="categoria">
+            @for (item of categorias; track item[0]) {
+              <mat-option [value]="item[0]">{{ item[1] }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="campo">
+          <mat-label>Cidade</mat-label>
+          <input matInput type="text" formControlName="cidade" placeholder="Palmas" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="campo">
+          <mat-label>Descricao curta</mat-label>
+          <textarea matInput formControlName="descricao" rows="3" placeholder="Cortes, barba e sobrancelha."></textarea>
+        </mat-form-field>
+
+        <mat-slide-toggle formControlName="visivelNoDiretorio" class="toggle">
+          Aparecer no diretorio publico
+        </mat-slide-toggle>
+
+        <button mat-flat-button color="primary" type="submit" class="botao-salvar" [disabled]="salvando()">
+          @if (salvando()) {
+            <mat-spinner diameter="20" />
+          } @else {
+            Salvar
+          }
+        </button>
+      </form>
+    </mat-card-content>
+  </mat-card>
+}

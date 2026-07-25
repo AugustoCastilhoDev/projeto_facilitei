@@ -27,3 +27,6 @@ backend/src/main/resources/application-local.yml
 # SO
 .DS_Store
 Thumbs.db
+
+# Log do backend rodando localmente para a suite E2E (ver e2e/tests/portal-flow.spec.ts)
+/backend.log
