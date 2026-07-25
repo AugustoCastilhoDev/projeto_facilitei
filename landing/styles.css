@@ -13,10 +13,21 @@
   --success: #146c2e;
   --success-bg: #d7f2e0;
   --line: #e4e1ed;
+
+  /* Fundo roxo (hero + CTA final) e secao escura (cards/blocos invertidos, ver .section--dark e .plan--featured) */
+  --hero-grad-start: #1e1147;
+  --hero-grad-mid: #2b16b5;
+  --hero-grad-end: #4338ca;
+  --dark-bg: #120c26;
+  --dark-ink: #f4f2ff;
+  --dark-ink-soft: rgba(244, 242, 255, 0.72);
+  --accent-on-dark: #a78bfa;
+
   --font-display: 'Manrope', system-ui, sans-serif;
   --font-body: 'Roboto', system-ui, sans-serif;
   --shadow-md: 0 12px 32px -12px rgba(23, 22, 42, 0.18);
   --shadow-lg: 0 28px 60px -24px rgba(23, 22, 42, 0.28);
+  --shadow-on-dark: 0 30px 70px -20px rgba(6, 4, 20, 0.55);
 }
 
 * {
@@ -78,6 +89,20 @@ h3 {
 
 .section--soft {
   background: var(--paper-soft);
+}
+
+/* Secao escura (Diferenciais) - alterna o ritmo com o roxo do hero/CTA sem repetir o mesmo tom. */
+.section--dark {
+  background: var(--dark-bg);
+  color: var(--dark-ink);
+}
+
+.section--dark .eyebrow {
+  color: var(--accent-on-dark);
+}
+
+.section--dark .section__head p {
+  color: var(--dark-ink-soft);
 }
 
 .section__head {
@@ -203,12 +228,17 @@ h3 {
   display: none;
 }
 
-/* Hero */
+/* Hero — fundo roxo (gradiente escuro -> indigo da marca), texto claro */
 .hero {
   padding: 76px 0 96px;
+  color: var(--dark-ink);
   background:
-    radial-gradient(ellipse 760px 420px at 82% -12%, var(--primary-container) 0%, transparent 62%),
-    var(--paper);
+    radial-gradient(ellipse 900px 520px at 85% -12%, rgba(255, 255, 255, 0.12) 0%, transparent 60%),
+    linear-gradient(160deg, var(--hero-grad-start) 0%, var(--hero-grad-mid) 55%, var(--hero-grad-end) 100%);
+}
+
+.hero .eyebrow {
+  color: var(--accent-on-dark);
 }
 
 .hero__inner {
@@ -225,7 +255,7 @@ h3 {
 
 .hero__lede {
   font-size: 1.12rem;
-  color: var(--ink-soft);
+  color: var(--dark-ink-soft);
   max-width: 46ch;
   margin: 22px 0 32px;
 }
@@ -238,27 +268,40 @@ h3 {
   margin-bottom: 28px;
 }
 
+/* Sobre o fundo roxo, o botao "ghost" (Ver como funciona) precisa de contorno/texto claros - a variante padrao (texto/borda na cor primaria) some contra o roxo. */
+.hero .btn--ghost {
+  color: var(--dark-ink);
+  border-color: rgba(244, 242, 255, 0.35);
+}
+.hero .btn--ghost:hover {
+  color: var(--dark-ink);
+  border-color: var(--dark-ink);
+  background: rgba(255, 255, 255, 0.08);
+}
+
 .hero__meta {
   display: flex;
   gap: 22px;
   flex-wrap: wrap;
   font-size: 0.85rem;
-  color: var(--ink-soft);
+  color: var(--dark-ink-soft);
 }
 
 .hero__meta strong {
-  color: var(--ink);
+  color: var(--dark-ink);
 }
 
 /* Mockup de confirmação Pix, ao lado do hero */
 .pix-card {
   background: var(--paper);
+  /* reseta a cor herdada do .hero (texto claro): o card e branco, entao o texto interno tem que voltar a ser escuro independente da secao ao redor */
+  color: var(--ink);
   border-radius: 24px;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-on-dark);
   padding: 28px;
   max-width: 340px;
   margin-left: auto;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .pix-card__top {
@@ -425,6 +468,15 @@ h3 {
   margin: 0;
 }
 
+.section--dark .feature__icon {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--accent-on-dark);
+}
+
+.section--dark .feature p {
+  color: var(--dark-ink-soft);
+}
+
 /* Planos */
 .plans {
   display: grid;
@@ -441,18 +493,44 @@ h3 {
   flex-direction: column;
 }
 
+/* Plano em destaque: card invertido (fundo escuro) em vez de so uma borda colorida - chama mais atencao entre os cards claros ao lado. */
 .plan--featured {
-  border-color: var(--primary);
-  box-shadow: var(--shadow-md);
+  background: var(--dark-bg);
+  color: var(--dark-ink);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: var(--shadow-on-dark);
   position: relative;
+}
+
+.plan--featured .plan__name,
+.plan--featured .plan__price {
+  color: var(--dark-ink);
+}
+
+.plan--featured .plan__price span,
+.plan--featured .plan__limit,
+.plan--featured .plan li {
+  color: var(--dark-ink-soft);
+}
+
+.plan--featured .plan li svg {
+  color: var(--accent-on-dark);
+}
+
+.plan--featured .btn--primary {
+  background: #fff;
+  color: var(--dark-bg);
+}
+.plan--featured .btn--primary:hover {
+  background: var(--dark-ink-soft);
 }
 
 .plan__badge {
   position: absolute;
   top: -13px;
   left: 28px;
-  background: var(--primary);
-  color: #fff;
+  background: var(--accent-on-dark);
+  color: var(--dark-bg);
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 0.72rem;
@@ -564,9 +642,9 @@ h3 {
   max-width: 65ch;
 }
 
-/* CTA final */
+/* CTA final - mesmo gradiente do hero, pra arrematar a pagina com a mesma identidade roxa */
 .cta-final {
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--hero-grad-start) 0%, var(--hero-grad-mid) 55%, var(--hero-grad-end) 100%);
   color: #fff;
   border-radius: 28px;
   padding: 56px;
