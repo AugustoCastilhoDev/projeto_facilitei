@@ -11,6 +11,7 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { PLANOS } from '../../../core/models/plano.model';
 import { AuthService } from '../../../core/services/auth.service';
+import { BrandMark } from '../../../shared/brand-mark/brand-mark';
 
 function senhasIguaisValidator(grupo: AbstractControl): ValidationErrors | null {
   const senha = grupo.get('senhaAdmin')?.value;
@@ -46,6 +47,7 @@ function slugify(texto: string): string {
     MatRadioModule,
     MatButtonModule,
     MatProgressSpinnerModule,
+    BrandMark,
   ],
   templateUrl: './registrar.html',
   styleUrl: './registrar.scss',

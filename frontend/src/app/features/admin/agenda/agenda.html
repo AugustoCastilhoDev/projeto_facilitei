@@ -1,4 +1,4 @@
-<div class="agenda-toolbar">
+<app-page-toolbar title="Agenda">
   <mat-button-toggle-group [value]="modo()" (change)="alterarModo($event.value)">
     <mat-button-toggle value="dia">Dia</mat-button-toggle>
     <mat-button-toggle value="semana">Semana</mat-button-toggle>
@@ -19,20 +19,16 @@
     </mat-select>
   </mat-form-field>
 
-  <span class="spacer"></span>
-
-  <button mat-flat-button color="primary" (click)="abrirGerarSlots()">
+  <button toolbar-actions mat-flat-button color="primary" (click)="abrirGerarSlots()">
     <mat-icon>event_available</mat-icon>
     Gerar horarios
   </button>
-</div>
+</app-page-toolbar>
 
 @if (carregando()) {
-  <div class="carregando">
-    <mat-spinner diameter="32" />
-  </div>
+  <app-loading-block />
 } @else if (grupos().length === 0) {
-  <p class="vazio">Nenhum horario neste periodo. Gere horarios para um servico e data.</p>
+  <app-empty-state icon="event_busy" message="Nenhum horario neste periodo. Gere horarios para um servico e data." />
 } @else {
   @for (grupo of grupos(); track grupo.data) {
     <section class="grupo-dia">
@@ -55,15 +51,15 @@
               <td>{{ slot.serviceNome }}</td>
               <td>{{ slot.profissionalNome }}</td>
               <td>
-                <span class="status-chip" [class]="'status-' + slot.status.toLowerCase()">{{ slot.status }}</span>
+                <app-status-chip [tone]="toneDoStatusSlot(slot.status)" [label]="slot.status" />
               </td>
               <td>
                 @if (slot.bookingId) {
                   {{ slot.clienteNome }} ({{ slot.clienteTelefone }})
                   @if (slot.compareceu === true) {
-                    <span class="status-chip status-compareceu">Compareceu</span>
+                    <app-status-chip tone="success" label="Compareceu" />
                   } @else if (slot.compareceu === false) {
-                    <span class="status-chip status-nao-compareceu">Nao compareceu</span>
+                    <app-status-chip tone="danger" label="Nao compareceu" />
                   }
                 }
               </td>

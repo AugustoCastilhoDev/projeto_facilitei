@@ -1,14 +1,13 @@
 @if (carregando()) {
-  <div class="carregando">
-    <mat-spinner diameter="32" />
-  </div>
+  <app-loading-block />
 } @else {
   <mat-card class="card-status">
     <mat-card-content>
       <div class="linha-status">
-        <span class="status-chip" [class.status-ativo]="config()?.configurado" [class.status-inativo]="!config()?.configurado">
-          {{ config()?.configurado ? 'Recebimento configurado' : 'Recebimento nao configurado' }}
-        </span>
+        <app-status-chip
+          [tone]="config()?.configurado ? 'success' : 'warning'"
+          [label]="config()?.configurado ? 'Recebimento configurado' : 'Recebimento nao configurado'"
+        />
       </div>
       <p class="explicacao">
         Sua conta Asaas recebe o sinal Pix dos seus clientes diretamente - nenhum valor passa pela plataforma.

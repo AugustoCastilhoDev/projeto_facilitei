@@ -1,14 +1,21 @@
 .login-page {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
+  gap: 24px;
   min-height: 100vh;
   padding: 16px;
+  background: radial-gradient(circle at 50% 0%, var(--mat-sys-primary-container) 0%, transparent 60%);
+}
+
+.login-brand {
+  margin-bottom: 4px;
 }
 
 .login-card {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
 }
 
 .campo {

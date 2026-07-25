@@ -1,17 +1,14 @@
-<div class="profissionais-toolbar">
-  <span class="spacer"></span>
-  <button mat-flat-button color="primary" (click)="novoProfissional()">
+<app-page-toolbar title="Profissionais">
+  <button toolbar-actions mat-flat-button color="primary" (click)="novoProfissional()">
     <mat-icon>add</mat-icon>
     Novo profissional
   </button>
-</div>
+</app-page-toolbar>
 
 @if (carregando()) {
-  <div class="carregando">
-    <mat-spinner diameter="32" />
-  </div>
+  <app-loading-block />
 } @else if (profissionais().length === 0) {
-  <p class="vazio">Nenhum profissional cadastrado ainda.</p>
+  <app-empty-state icon="badge" message="Nenhum profissional cadastrado ainda." />
 } @else {
   <table mat-table [dataSource]="profissionais()" class="tabela-profissionais">
     <ng-container matColumnDef="nome">
@@ -40,9 +37,10 @@
     <ng-container matColumnDef="status">
       <th mat-header-cell *matHeaderCellDef>Status</th>
       <td mat-cell *matCellDef="let profissional">
-        <span class="status-chip" [class.status-ativo]="profissional.ativo" [class.status-inativo]="!profissional.ativo">
-          {{ profissional.ativo ? 'Ativo' : 'Inativo' }}
-        </span>
+        <app-status-chip
+          [tone]="profissional.ativo ? 'success' : 'neutral'"
+          [label]="profissional.ativo ? 'Ativo' : 'Inativo'"
+        />
       </td>
     </ng-container>
 

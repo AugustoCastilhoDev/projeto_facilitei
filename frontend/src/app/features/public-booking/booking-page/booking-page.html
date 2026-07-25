@@ -1,10 +1,12 @@
-<mat-toolbar color="primary">{{ tenant()?.nome ?? 'Facilitei' }}</mat-toolbar>
+<mat-toolbar class="booking-toolbar">
+  <span class="tenant-nome">{{ tenant()?.nome ?? 'Facilitei' }}</span>
+  <span class="spacer"></span>
+  <app-brand-mark variant="compact" />
+</mat-toolbar>
 
 <div class="booking-content">
   @if (carregandoInicial()) {
-    <div class="carregando">
-      <mat-spinner diameter="32" />
-    </div>
+    <app-loading-block />
   } @else if (erroInicial()) {
     <mat-card>
       <mat-card-content>
@@ -12,6 +14,25 @@
       </mat-card-content>
     </mat-card>
   } @else {
+    <nav class="passos" aria-label="Progresso do agendamento">
+      @for (passo of passos; track passo.numero) {
+        <div
+          class="passos__item"
+          [class.passos__item--ativo]="passoAtual() === passo.numero"
+          [class.passos__item--concluido]="passoAtual() > passo.numero"
+        >
+          <span class="passos__bolha">
+            @if (passoAtual() > passo.numero) {
+              <mat-icon>check</mat-icon>
+            } @else {
+              {{ passo.numero }}
+            }
+          </span>
+          <span class="passos__rotulo">{{ passo.rotulo }}</span>
+        </div>
+      }
+    </nav>
+
     @switch (etapa()) {
       @case ('servicos') {
         <mat-card>
@@ -20,7 +41,7 @@
           </mat-card-header>
           <mat-card-content>
             @if (servicos().length === 0) {
-              <p class="vazio">Nenhum servico disponivel para agendamento no momento.</p>
+              <app-empty-state icon="event_busy" message="Nenhum servico disponivel para agendamento no momento." />
             } @else {
               <div class="lista-servicos">
                 @for (servico of servicos(); track servico.id) {
@@ -47,11 +68,9 @@
           </mat-card-header>
           <mat-card-content>
             @if (carregandoProfissionais()) {
-              <div class="carregando">
-                <mat-spinner diameter="32" />
-              </div>
+              <app-loading-block />
             } @else if (profissionais().length === 0) {
-              <p class="vazio">Nenhum profissional disponivel para este servico no momento.</p>
+              <app-empty-state icon="badge" message="Nenhum profissional disponivel para este servico no momento." />
             } @else {
               <div class="lista-servicos">
                 @for (profissional of profissionais(); track profissional.id) {
@@ -77,11 +96,9 @@
             <input type="date" class="campo-data" [value]="data()" (change)="onDataChange($event)" />
 
             @if (carregandoSlots()) {
-              <div class="carregando">
-                <mat-spinner diameter="32" />
-              </div>
+              <app-loading-block />
             } @else if (slotsDoServico().length === 0) {
-              <p class="vazio">Nenhum horario disponivel nesta data.</p>
+              <app-empty-state icon="schedule" message="Nenhum horario disponivel nesta data." />
             } @else {
               <div class="lista-horarios">
                 @for (slot of slotsDoServico(); track slot.id) {

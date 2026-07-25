@@ -10,6 +10,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { AsaasConfig } from '../../../core/models/asaas-config.model';
 import { AsaasConfigService } from '../../../core/services/asaas-config.service';
+import { LoadingBlock } from '../../../shared/loading-block/loading-block';
+import { StatusChip } from '../../../shared/status-chip/status-chip';
 
 /**
  * Configuracao da propria conta Asaas do tenant (modelo BYOPP - "traga sua
@@ -27,6 +29,8 @@ import { AsaasConfigService } from '../../../core/services/asaas-config.service'
     MatButtonModule,
     MatIconModule,
     MatProgressSpinnerModule,
+    LoadingBlock,
+    StatusChip,
   ],
   templateUrl: './pagamentos.html',
   styleUrl: './pagamentos.scss',

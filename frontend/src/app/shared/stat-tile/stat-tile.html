@@ -1,0 +1,12 @@
+<div class="stat-tile">
+  <div class="stat-tile__icon">
+    <mat-icon>{{ icon() }}</mat-icon>
+  </div>
+  <div class="stat-tile__body">
+    <span class="stat-tile__label">{{ label() }}</span>
+    <span class="stat-tile__value">{{ value() }}</span>
+    @if (legend()) {
+      <span class="stat-tile__legend">{{ legend() }}</span>
+    }
+  </div>
+</div>

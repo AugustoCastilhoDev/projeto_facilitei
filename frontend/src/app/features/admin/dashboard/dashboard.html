@@ -1,8 +1,8 @@
-<mat-toolbar color="primary">
-  <span>Painel do Facilitei</span>
+<mat-toolbar class="dashboard-toolbar">
+  <app-brand-mark variant="compact" />
   <span class="spacer"></span>
-  @if (tenantSlug) {
-    <span class="tenant-slug">{{ tenantSlug }}</span>
+  @if (tenantNomeFormatado) {
+    <span class="tenant-slug">{{ tenantNomeFormatado }}</span>
   }
   <button mat-icon-button (click)="sair()" aria-label="Sair" title="Sair">
     <mat-icon>logout</mat-icon>

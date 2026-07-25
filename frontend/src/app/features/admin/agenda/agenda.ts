@@ -14,7 +14,23 @@ import { BookingAdminService } from '../../../core/services/booking-admin.servic
 import { ProfissionalService } from '../../../core/services/profissional.service';
 import { ServiceOfferingService } from '../../../core/services/service-offering.service';
 import { SlotService } from '../../../core/services/slot.service';
+import { EmptyState } from '../../../shared/empty-state/empty-state';
+import { LoadingBlock } from '../../../shared/loading-block/loading-block';
+import { PageToolbar } from '../../../shared/page-toolbar/page-toolbar';
+import { StatusChip, StatusChipTone } from '../../../shared/status-chip/status-chip';
 import { GerarSlotsDialog } from './gerar-slots-dialog/gerar-slots-dialog';
+
+/** Mapeia o status bruto do slot (enum do backend) para o tom visual do chip compartilhado. */
+function toneDoStatusSlot(status: string): StatusChipTone {
+  switch (status) {
+    case 'CONFIRMADO':
+      return 'success';
+    case 'RESERVADO':
+      return 'warning';
+    default:
+      return 'neutral';
+  }
+}
 
 interface GrupoAgenda {
   data: string;
@@ -85,11 +101,16 @@ function agruparPorDia(slots: Slot[]): GrupoAgenda[] {
     MatIconModule,
     MatProgressSpinnerModule,
     MatSelectModule,
+    EmptyState,
+    LoadingBlock,
+    PageToolbar,
+    StatusChip,
   ],
   templateUrl: './agenda.html',
   styleUrl: './agenda.scss',
 })
 export class Agenda {
+  protected readonly toneDoStatusSlot = toneDoStatusSlot;
   private readonly slotService = inject(SlotService);
   private readonly serviceOfferingService = inject(ServiceOfferingService);
   private readonly profissionalService = inject(ProfissionalService);

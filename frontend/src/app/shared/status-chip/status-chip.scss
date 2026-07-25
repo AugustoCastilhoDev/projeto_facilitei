@@ -1,0 +1,35 @@
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.status-chip--success {
+  color: var(--app-success);
+  background: var(--app-success-bg);
+}
+
+.status-chip--warning {
+  color: var(--app-warning);
+  background: var(--app-warning-bg);
+}
+
+.status-chip--danger {
+  color: var(--app-danger);
+  background: var(--app-danger-bg);
+}
+
+.status-chip--neutral {
+  color: var(--app-neutral);
+  background: var(--app-neutral-bg);
+}
+
+.status-chip--info {
+  color: var(--mat-sys-primary);
+  background: var(--mat-sys-primary-container);
+}

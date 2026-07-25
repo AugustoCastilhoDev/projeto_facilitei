@@ -12,7 +12,7 @@ Projeto construído como portfólio técnico, documentando as decisões de arqui
 |---|---|
 | Backend | Java 21, Spring Boot 4.1.0, Spring Data JPA, Spring Security (JWT nativo via OAuth2 Resource Server), Flyway |
 | Banco de dados | PostgreSQL 17 |
-| Frontend | Angular 22 (standalone components, Signals), Angular Material 3 |
+| Frontend | Angular 22 (standalone components, Signals), Angular Material 3 com tema de marca próprio (paleta índigo gerada via `ng generate @angular/material:m3-theme`, ver `frontend/src/theme-colors.scss`) e componentes visuais compartilhados em `frontend/src/app/shared/` |
 | Pagamento | Asaas — cobrança Pix, modelo "traga sua própria conta" (BYOPP): cada tenant usa a própria chave de API |
 | Notificação | Abstração própria (`NotificationService`) — WhatsApp real via [MyZap](https://www.myzap.net) (provedor não-oficial) ou mock de console, alternável por config |
 

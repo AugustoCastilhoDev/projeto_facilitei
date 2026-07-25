@@ -1,14 +1,22 @@
+.dashboard-toolbar {
+  background: var(--mat-sys-surface);
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+}
+
 .spacer {
   flex: 1 1 auto;
 }
 
 .tenant-slug {
-  opacity: 0.85;
+  color: var(--mat-sys-on-surface-variant);
   margin-right: 8px;
   font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .dashboard-content {
   display: block;
-  padding: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px;
 }

@@ -10,12 +10,26 @@ import { Profissional } from '../../../core/models/profissional.model';
 import { ServiceOffering } from '../../../core/models/service-offering.model';
 import { ProfissionalService } from '../../../core/services/profissional.service';
 import { ServiceOfferingService } from '../../../core/services/service-offering.service';
+import { EmptyState } from '../../../shared/empty-state/empty-state';
+import { LoadingBlock } from '../../../shared/loading-block/loading-block';
+import { PageToolbar } from '../../../shared/page-toolbar/page-toolbar';
+import { StatusChip } from '../../../shared/status-chip/status-chip';
 import { ServiceFormDialog } from './service-form-dialog/service-form-dialog';
 
 /** CRUD de servicos do tenant logado (ver ServiceOfferingAdminController no backend). */
 @Component({
   selector: 'app-servicos',
-  imports: [DecimalPipe, MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatTableModule],
+  imports: [
+    DecimalPipe,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatTableModule,
+    EmptyState,
+    LoadingBlock,
+    PageToolbar,
+    StatusChip,
+  ],
   templateUrl: './servicos.html',
   styleUrl: './servicos.scss',
 })

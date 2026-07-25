@@ -1,28 +1,21 @@
-.relatorios-toolbar {
+label {
   display: flex;
   align-items: center;
-  gap: 24px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-
-  label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+  gap: 8px;
 }
 
 .campo-data {
-  padding: 8px;
+  padding: 8px 10px;
   font: inherit;
-  border: 1px solid var(--mat-sys-outline, #999);
-  border-radius: 4px;
-}
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  background: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
 
-.carregando {
-  display: flex;
-  justify-content: center;
-  padding: 32px;
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: 1px;
+  }
 }
 
 .vazio {
@@ -36,30 +29,9 @@
   margin-bottom: 24px;
 }
 
-.cards mat-card {
-  flex: 1 1 220px;
-}
-
-.card-label {
-  display: block;
-  font-size: 0.85rem;
-  opacity: 0.7;
-}
-
-.card-valor {
-  display: block;
-  font-size: 1.8rem;
-  font-weight: 600;
-  margin-top: 4px;
-}
-
-.card-legenda {
-  display: block;
-  font-size: 0.8rem;
-  opacity: 0.7;
-  margin-top: 4px;
-}
-
 .tabela-recorrentes {
   width: 100%;
+  background: var(--mat-sys-surface-container-low);
+  border-radius: 12px;
+  overflow: hidden;
 }

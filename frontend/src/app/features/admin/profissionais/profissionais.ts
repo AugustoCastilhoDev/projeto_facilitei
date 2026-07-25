@@ -9,12 +9,25 @@ import { Profissional } from '../../../core/models/profissional.model';
 import { ServiceOffering } from '../../../core/models/service-offering.model';
 import { ProfissionalService } from '../../../core/services/profissional.service';
 import { ServiceOfferingService } from '../../../core/services/service-offering.service';
+import { EmptyState } from '../../../shared/empty-state/empty-state';
+import { LoadingBlock } from '../../../shared/loading-block/loading-block';
+import { PageToolbar } from '../../../shared/page-toolbar/page-toolbar';
+import { StatusChip } from '../../../shared/status-chip/status-chip';
 import { ProfissionalFormDialog } from './profissional-form-dialog/profissional-form-dialog';
 
 /** CRUD de profissionais do tenant logado (ver ProfissionalAdminController no backend). */
 @Component({
   selector: 'app-profissionais',
-  imports: [MatButtonModule, MatIconModule, MatProgressSpinnerModule, MatTableModule],
+  imports: [
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatTableModule,
+    EmptyState,
+    LoadingBlock,
+    PageToolbar,
+    StatusChip,
+  ],
   templateUrl: './profissionais.html',
   styleUrl: './profissionais.scss',
 })

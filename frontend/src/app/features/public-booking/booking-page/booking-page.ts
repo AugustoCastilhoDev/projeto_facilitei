@@ -1,6 +1,6 @@
 import { DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnDestroy, OnInit, inject, input, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, input, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -18,6 +18,9 @@ import { ServiceOffering } from '../../../core/models/service-offering.model';
 import { Slot } from '../../../core/models/slot.model';
 import { PublicTenant } from '../../../core/models/tenant.model';
 import { PublicBookingService } from '../../../core/services/public-booking.service';
+import { BrandMark } from '../../../shared/brand-mark/brand-mark';
+import { EmptyState } from '../../../shared/empty-state/empty-state';
+import { LoadingBlock } from '../../../shared/loading-block/loading-block';
 
 type Etapa = 'servicos' | 'profissionais' | 'horarios' | 'dados' | 'pagamento';
 
@@ -50,11 +53,34 @@ const INTERVALO_POLLING_MS = 4000;
     MatProgressSpinnerModule,
     MatFormFieldModule,
     MatInputModule,
+    BrandMark,
+    EmptyState,
+    LoadingBlock,
   ],
   templateUrl: './booking-page.html',
   styleUrl: './booking-page.scss',
 })
 export class BookingPage implements OnInit, OnDestroy {
+  /** Passos exibidos no indicador de progresso - "dados" e "pagamento" contam como a etapa final de confirmacao. */
+  protected readonly passos = [
+    { numero: 1, rotulo: 'Servico' },
+    { numero: 2, rotulo: 'Profissional' },
+    { numero: 3, rotulo: 'Horario' },
+    { numero: 4, rotulo: 'Confirmacao' },
+  ] as const;
+
+  protected readonly passoAtual = computed(() => {
+    switch (this.etapa()) {
+      case 'servicos':
+        return 1;
+      case 'profissionais':
+        return 2;
+      case 'horarios':
+        return 3;
+      default:
+        return 4;
+    }
+  });
   // preenchidos automaticamente a partir dos parametros da rota (ver
   // withComponentInputBinding em app.config.ts). bookingId so existe na rota
   // /agendar/:slug/reserva/:bookingId, usada para retomar a tela de

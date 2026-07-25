@@ -4,14 +4,18 @@
 // Learn more about theming and how to use it for your application's
 // custom components at https://material.angular.dev/guide/theming
 @use '@angular/material' as mat;
+// Paleta de marca (indigo, semente #4338CA) gerada via
+// `ng generate @angular/material:m3-theme` - nao editar as paletas a mao,
+// regerar o arquivo se a cor de marca mudar.
+@use './theme-colors' as theme;
 
 html {
   height: 100%;
   @include mat.theme(
     (
       color: (
-        primary: mat.$azure-palette,
-        tertiary: mat.$blue-palette,
+        primary: theme.$primary-palette,
+        tertiary: theme.$tertiary-palette,
       ),
       typography: Roboto,
       density: 0,
@@ -35,5 +39,27 @@ body {
   // Reset the user agent margin.
   margin: 0;
   height: 100%;
+
+  // Tokens semanticos de status (Material so tem primary/secondary/tertiary/
+  // error - "sucesso"/"aviso" nao existem nativamente). Consumidos pelo
+  // componente compartilhado <app-status-chip>, evitando reinventar cores de
+  // status em cada tela do painel admin.
+  --app-success: #146c2e;
+  --app-success-bg: #d7f2e0;
+  --app-warning: #8a5a00;
+  --app-warning-bg: #fdecc8;
+  --app-danger: var(--mat-sys-error);
+  --app-danger-bg: var(--mat-sys-error-container);
+  --app-neutral: #5f5d67;
+  --app-neutral-bg: #e4e1ed;
+}
+
+// Fonte de titulos/wordmark - so cosmetico, nao mexe na tipografia interna
+// dos componentes Material (que continua Roboto via mat.theme() acima).
+h1,
+h2,
+h3,
+.app-wordmark {
+  font-family: 'Manrope', Roboto, sans-serif;
 }
 /* You can add global styles to this file, and also import other style files */

@@ -7,15 +7,46 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Assinatura } from '../../../core/models/assinatura.model';
 import { PLANOS } from '../../../core/models/plano.model';
 import { AssinaturaService } from '../../../core/services/assinatura.service';
+import { LoadingBlock } from '../../../shared/loading-block/loading-block';
+import { StatusChip, StatusChipTone } from '../../../shared/status-chip/status-chip';
+
+/** Mapeia o status bruto da assinatura (enum do backend) para o tom visual do chip compartilhado. */
+function toneDoStatusAssinatura(status: string): StatusChipTone {
+  switch (status) {
+    case 'ATIVA':
+      return 'success';
+    case 'INADIMPLENTE':
+      return 'warning';
+    case 'CANCELADA':
+      return 'neutral';
+    default:
+      return 'info';
+  }
+}
+
+function labelDoStatusAssinatura(status: string): string {
+  switch (status) {
+    case 'ATIVA':
+      return 'Assinatura ativa';
+    case 'INADIMPLENTE':
+      return 'Pagamento pendente';
+    case 'CANCELADA':
+      return 'Assinatura cancelada';
+    default:
+      return 'Periodo de teste';
+  }
+}
 
 /** Status da assinatura do tenant logado com a propria plataforma - ver AssinaturaAdminController no backend. */
 @Component({
   selector: 'app-assinatura',
-  imports: [MatCardModule, MatIconModule, MatButtonModule, MatProgressSpinnerModule],
+  imports: [MatCardModule, MatIconModule, MatButtonModule, MatProgressSpinnerModule, LoadingBlock, StatusChip],
   templateUrl: './assinatura.html',
   styleUrl: './assinatura.scss',
 })
 export class AssinaturaPage {
+  protected readonly toneDoStatusAssinatura = toneDoStatusAssinatura;
+  protected readonly labelDoStatusAssinatura = labelDoStatusAssinatura;
   private readonly assinaturaService = inject(AssinaturaService);
   private readonly snackBar = inject(MatSnackBar);
 

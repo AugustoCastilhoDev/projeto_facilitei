@@ -1,25 +1,10 @@
 @if (carregando()) {
-  <div class="carregando">
-    <mat-spinner diameter="32" />
-  </div>
+  <app-loading-block />
 } @else if (assinatura(); as dados) {
   <mat-card class="card-status">
     <mat-card-content>
       <div class="linha-status">
-        <span
-          class="status-chip"
-          [class.status-trial]="dados.status === 'TRIAL'"
-          [class.status-ativo]="dados.status === 'ATIVA'"
-          [class.status-inadimplente]="dados.status === 'INADIMPLENTE'"
-          [class.status-cancelada]="dados.status === 'CANCELADA'"
-        >
-          @switch (dados.status) {
-            @case ('TRIAL') { Periodo de teste }
-            @case ('ATIVA') { Assinatura ativa }
-            @case ('INADIMPLENTE') { Pagamento pendente }
-            @case ('CANCELADA') { Assinatura cancelada }
-          }
-        </span>
+        <app-status-chip [tone]="toneDoStatusAssinatura(dados.status)" [label]="labelDoStatusAssinatura(dados.status)" />
         <span class="plano-atual">Plano {{ nomePlano() }}</span>
       </div>
 

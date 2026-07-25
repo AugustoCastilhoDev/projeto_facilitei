@@ -1,0 +1,13 @@
+<div class="page-toolbar">
+  @if (title()) {
+    <h2 class="page-toolbar__title">{{ title() }}</h2>
+  }
+  <div class="page-toolbar__row">
+    <div class="page-toolbar__start">
+      <ng-content />
+    </div>
+    <div class="page-toolbar__end">
+      <ng-content select="[toolbar-actions]" />
+    </div>
+  </div>
+</div>

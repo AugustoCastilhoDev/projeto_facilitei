@@ -9,6 +9,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { AuthService } from '../../../core/services/auth.service';
 import { TokenStorageService } from '../../../core/services/token-storage.service';
+import { BrandMark } from '../../../shared/brand-mark/brand-mark';
 
 @Component({
   selector: 'app-login',
@@ -20,6 +21,7 @@ import { TokenStorageService } from '../../../core/services/token-storage.servic
     MatInputModule,
     MatButtonModule,
     MatProgressSpinnerModule,
+    BrandMark,
   ],
   templateUrl: './login.html',
   styleUrl: './login.scss',

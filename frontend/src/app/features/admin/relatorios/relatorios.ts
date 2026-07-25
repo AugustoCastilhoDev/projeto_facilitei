@@ -6,6 +6,10 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { Relatorio } from '../../../core/models/relatorio.model';
 import { ReportService } from '../../../core/services/report.service';
+import { EmptyState } from '../../../shared/empty-state/empty-state';
+import { LoadingBlock } from '../../../shared/loading-block/loading-block';
+import { PageToolbar } from '../../../shared/page-toolbar/page-toolbar';
+import { StatTile } from '../../../shared/stat-tile/stat-tile';
 
 function formatarIso(data: Date): string {
   const ano = data.getFullYear();
@@ -26,7 +30,17 @@ function hojeIso(): string {
 /** Relatorio basico do tenant logado: faturamento, taxa de nao comparecimento e clientes recorrentes do periodo. */
 @Component({
   selector: 'app-relatorios',
-  imports: [DatePipe, DecimalPipe, MatCardModule, MatProgressSpinnerModule, MatTableModule],
+  imports: [
+    DatePipe,
+    DecimalPipe,
+    MatCardModule,
+    MatProgressSpinnerModule,
+    MatTableModule,
+    EmptyState,
+    LoadingBlock,
+    PageToolbar,
+    StatTile,
+  ],
   templateUrl: './relatorios.html',
   styleUrl: './relatorios.scss',
 })
