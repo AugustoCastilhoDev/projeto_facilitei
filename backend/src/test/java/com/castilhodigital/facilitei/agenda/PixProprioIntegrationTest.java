@@ -7,10 +7,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.castilhodigital.facilitei.agenda.sinal.MeioCobranca;
-import com.castilhodigital.facilitei.pix.TipoChavePix;
 import java.time.Duration;
 import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -18,26 +16,13 @@ import org.springframework.beans.factory.annotation.Autowired;
  * Sinal recebido na chave Pix do proprio dono (sem Asaas): o negocio do cenario passa a ter so a chave Pix,
  * e o Facilitei monta o "copia e cola" sem chamar gateway nenhum.
  */
-class PixProprioIntegrationTest extends CenarioBarbeariaIntegrationTest {
-
-    private static final String CHAVE = "+5563988887777";
+class PixProprioIntegrationTest extends CenarioPixProprioIntegrationTest {
 
     @Autowired
     private AgendamentoCheckoutService checkoutService;
 
     @Autowired
     private AgendamentoService agendamentoService;
-
-    @BeforeEach
-    void trocarAsaasPorPixProprio() {
-        negocio.setAsaasApiKey(null);
-        negocio.setTelefoneDono("5563977776666");
-        negocio.setPixTipoChave(TipoChavePix.TELEFONE);
-        negocio.setPixChave(CHAVE);
-        negocio.setPixNomeRecebedor("BARBEARIA DO ZE");
-        negocio.setPixCidadeRecebedor("PALMAS");
-        negocio = tenantRepository.saveAndFlush(negocio);
-    }
 
     @Test
     void reservaComSinalGeraOPixDoDonoSemChamarGatewayNenhum() {
@@ -53,7 +38,7 @@ class PixProprioIntegrationTest extends CenarioBarbeariaIntegrationTest {
                 .contains("FAC" + agendamento.id());
         assertThat(checkout.cobranca().qrCodeBase64()).isNull();
         verifyNoInteractions(paymentGatewayService);
-        verify(notificationService).enviar(eq(TELEFONE), contains("Pague o sinal via Pix"));
+        verify(notificationService).enviar(eq(TELEFONE), contains("Pague o sinal de R$ 15,00 via Pix"));
 
         var gravado = agendamentoRepository.findById(agendamento.id()).orElseThrow();
         assertThat(gravado.getMeioCobranca()).isEqualTo(MeioCobranca.PIX_PROPRIO);

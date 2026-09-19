@@ -39,7 +39,8 @@ class ApplicationProdYmlTest {
             "facilitei.jwt.secret, JWT_SECRET",
             "facilitei.security.credentials-encryption-key, CREDENTIALS_ENCRYPTION_KEY",
             "facilitei.security.credentials-encryption-salt, CREDENTIALS_ENCRYPTION_SALT",
-            "facilitei.notification.provider, NOTIFICATION_PROVIDER"})
+            "facilitei.notification.provider, NOTIFICATION_PROVIDER",
+            "facilitei.frontend.base-url, FRONTEND_BASE_URL"})
     void naoSobeSemAVariavelDeAmbienteObrigatoria(String propriedade, String variavel) {
         assertThatThrownBy(() -> ambiente.getRequiredProperty(propriedade))
                 .hasMessageContaining(variavel);

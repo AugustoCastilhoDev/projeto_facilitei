@@ -3,6 +3,8 @@ package com.castilhodigital.facilitei.agenda.api;
 import com.castilhodigital.facilitei.agenda.AgendamentoOrigem;
 import com.castilhodigital.facilitei.agenda.AgendamentoStatus;
 import com.castilhodigital.facilitei.agenda.AgendamentoView;
+import com.castilhodigital.facilitei.agenda.sinal.MeioCobranca;
+import com.castilhodigital.facilitei.pix.ReferenciaPix;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -25,6 +27,12 @@ public record AgendamentoAdminResponse(
         BigDecimal valorTotal,
         BigDecimal valorSinal,
         boolean sinalConfirmado,
+        /** Pix proprio: o cliente avisou que pagou e o dono ainda precisa conferir no banco (status AGUARDANDO_CONFIRMACAO). */
+        boolean pagamentoInformado,
+        /** Como o sinal foi cobrado; nulo se nao houve sinal. */
+        MeioCobranca meioCobranca,
+        /** Identificador do Pix no comprovante do banco (so no Pix proprio), para conferir no extrato. */
+        String referenciaPix,
         OffsetDateTime expiraEm
 ) {
 
@@ -47,6 +55,9 @@ public record AgendamentoAdminResponse(
                 agendamento.valorTotal(),
                 agendamento.valorSinal(),
                 agendamento.sinalConfirmadoEm() != null,
+                agendamento.pagamentoInformadoEm() != null,
+                agendamento.meioCobranca(),
+                agendamento.meioCobranca() == MeioCobranca.PIX_PROPRIO ? ReferenciaPix.doAgendamento(agendamento.id()) : null,
                 agendamento.expiraEm() == null ? null : agendamento.expiraEm().atZone(fuso).toOffsetDateTime());
     }
 

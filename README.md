@@ -255,6 +255,7 @@ O GitHub Actions (`.github/workflows/ci.yml`) roda exatamente esses mesmos coman
 | `CREDENTIALS_ENCRYPTION_KEY` | mínimo 32 caracteres; trocá-la invalida as chaves Asaas já gravadas |
 | `CREDENTIALS_ENCRYPTION_SALT` | hexadecimal, tamanho par, mínimo 16 caracteres (ex.: `openssl rand -hex 8`) |
 | `NOTIFICATION_PROVIDER` | `myzap`; `console` é recusado (só logaria o código OTP) |
+| `FRONTEND_BASE_URL` | endereço público do frontend, em `https` e fora de `localhost` (ex.: `https://app.seudominio.com.br`); é a base dos links que vão por WhatsApp — o dono confirmando um Pix recebe um link `…/confirmar-sinal/<token>` |
 | `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | conexão com o Postgres |
 | `MYZAP_API_KEY`, `ASAAS_API_KEY`, `ASAAS_SAAS_WEBHOOK_TOKEN`, `SENTRY_DSN` | integrações |
 

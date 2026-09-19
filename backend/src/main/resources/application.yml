@@ -26,6 +26,11 @@ spring:
     locations: classpath:db/migration
 
 facilitei:
+  frontend:
+    # Endereco publico do frontend, usado para montar os links que vao por WhatsApp (ex.: o link em que o dono
+    # confirma um Pix). Em producao vem de FRONTEND_BASE_URL, sem default (ver application-prod.yml).
+    base-url: ${FRONTEND_BASE_URL:http://localhost:4200}
+
   jwt:
     # Em producao, JWT_SECRET deve vir de variavel de ambiente/secret manager,
     # nunca do valor default abaixo.

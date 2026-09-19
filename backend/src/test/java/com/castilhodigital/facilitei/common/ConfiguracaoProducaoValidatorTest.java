@@ -11,9 +11,14 @@ class ConfiguracaoProducaoValidatorTest {
     private static final String JWT_OK = "k8Jd93hFq0LzXv27aPwR5mTnB6yUcE41";
     private static final String CHAVE_OK = "Zq81LmXc0vNr47TbHy5WdKs92AeJfP63";
     private static final String SALT_OK = "a1b2c3d4e5f60718";
+    private static final String FRONTEND_OK = "https://app.barbearia.com.br";
 
     private ConfiguracaoProducaoValidator validador(String jwt, String chave, String salt, String provider) {
-        return new ConfiguracaoProducaoValidator(jwt, provider, new CredentialsEncryptionProperties(chave, salt));
+        return validador(jwt, chave, salt, provider, FRONTEND_OK);
+    }
+
+    private ConfiguracaoProducaoValidator validador(String jwt, String chave, String salt, String provider, String frontend) {
+        return new ConfiguracaoProducaoValidator(jwt, provider, frontend, new CredentialsEncryptionProperties(chave, salt));
     }
 
     @Test
@@ -69,14 +74,36 @@ class ConfiguracaoProducaoValidatorTest {
                 .hasMessageContaining("NOTIFICATION_PROVIDER");
     }
 
+    /** Em http o token do link do dono trafegaria em texto puro. */
+    @Test
+    void recusaFrontendEmHttp() {
+        assertThatThrownBy(() -> validador(JWT_OK, CHAVE_OK, SALT_OK, "myzap", "http://app.barbearia.com.br").validar())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("FRONTEND_BASE_URL")
+                .hasMessageContaining("https");
+    }
+
+    /** O dono receberia, no WhatsApp, um link que so abre na maquina de quem desenvolve. */
+    @Test
+    void recusaFrontendApontandoParaLocalhostOuVazio() {
+        assertThatThrownBy(() -> validador(JWT_OK, CHAVE_OK, SALT_OK, "myzap", "https://localhost:4200").validar())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("FRONTEND_BASE_URL")
+                .hasMessageContaining("localhost");
+        assertThatThrownBy(() -> validador(JWT_OK, CHAVE_OK, SALT_OK, "myzap", "").validar())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("FRONTEND_BASE_URL");
+    }
+
     @Test
     void relataTodosOsProblemasDeUmaVezEmVezDeUmPorDeploy() {
-        assertThatThrownBy(() -> validador("curto", "curta", "xyz", "console").validar())
+        assertThatThrownBy(() -> validador("curto", "curta", "xyz", "console", "http://x").validar())
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("JWT_SECRET")
                 .hasMessageContaining("CREDENTIALS_ENCRYPTION_KEY")
                 .hasMessageContaining("CREDENTIALS_ENCRYPTION_SALT")
-                .hasMessageContaining("NOTIFICATION_PROVIDER");
+                .hasMessageContaining("NOTIFICATION_PROVIDER")
+                .hasMessageContaining("FRONTEND_BASE_URL");
     }
 
 }

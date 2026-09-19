@@ -1,6 +1,7 @@
 package com.castilhodigital.facilitei.agenda.sinal;
 
 import com.castilhodigital.facilitei.pix.BrCode;
+import com.castilhodigital.facilitei.pix.ReferenciaPix;
 import com.castilhodigital.facilitei.tenant.Tenant;
 import java.util.Optional;
 import org.springframework.core.annotation.Order;
@@ -16,9 +17,6 @@ import org.springframework.stereotype.Component;
 @Component
 @Order(2)
 class PixProprioCobrancaSinalService implements CobrancaSinalService {
-
-    /** Prefixo do txid: o dono ve "FAC42" no comprovante do banco e sabe de qual agendamento e o Pix. */
-    static final String PREFIXO_TXID = "FAC";
 
     @Override
     public MeioCobranca meio() {
@@ -38,13 +36,9 @@ class PixProprioCobrancaSinalService implements CobrancaSinalService {
     @Override
     public CobrancaSinal criar(Tenant tenant, SolicitacaoCobranca solicitacao) {
         String payload = BrCode.gerar(tenant.getPixChave(), tenant.getPixNomeRecebedor(), tenant.getPixCidadeRecebedor(),
-                solicitacao.valor(), txid(solicitacao.agendamentoId()));
+                solicitacao.valor(), ReferenciaPix.doAgendamento(solicitacao.agendamentoId()));
         // sem id no gateway (o Pix estatico nao tem cobranca para consultar) e sem imagem: a tela desenha o QR do "copia e cola"
         return new CobrancaSinal(null, payload, null);
-    }
-
-    static String txid(Long agendamentoId) {
-        return PREFIXO_TXID + agendamentoId;
     }
 
     @Override

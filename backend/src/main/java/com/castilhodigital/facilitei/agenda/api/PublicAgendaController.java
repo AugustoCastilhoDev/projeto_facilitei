@@ -2,6 +2,7 @@ package com.castilhodigital.facilitei.agenda.api;
 
 import com.castilhodigital.facilitei.agenda.AgendamentoCheckoutService;
 import com.castilhodigital.facilitei.agenda.AgendamentoOrigem;
+import com.castilhodigital.facilitei.agenda.AgendamentoPagamentoService;
 import com.castilhodigital.facilitei.agenda.CheckoutAgendamento;
 import com.castilhodigital.facilitei.agenda.DisponibilidadeService;
 import com.castilhodigital.facilitei.agenda.DisponibilidadeService.ProfissionalResumo;
@@ -42,6 +43,7 @@ public class PublicAgendaController {
     private final TenantService tenantService;
     private final DisponibilidadeService disponibilidadeService;
     private final AgendamentoCheckoutService checkoutService;
+    private final AgendamentoPagamentoService pagamentoService;
     private final Clock clock;
 
     @GetMapping("/profissionais")
@@ -79,6 +81,16 @@ public class PublicAgendaController {
     @GetMapping("/agendamentos/{codigo}")
     public AgendamentoPublicoResponse buscar(@PathVariable String slug, @PathVariable UUID codigo) {
         return AgendamentoPublicoResponse.de(checkoutService.consultar(slug, codigo));
+    }
+
+    /**
+     * "Ja paguei" (so Pix na chave do dono): o horario passa a ficar segurado por mais tempo e o dono recebe o pedido
+     * de conferir. Repetir a chamada nao gera outro pedido. 409 se a reserva ja expirou e o horario foi ocupado.
+     */
+    @PostMapping("/agendamentos/{codigo}/informar-pagamento")
+    public AgendamentoPublicoResponse informarPagamento(@PathVariable String slug, @PathVariable UUID codigo) {
+        return AgendamentoPublicoResponse.de(new CheckoutAgendamento(
+                pagamentoService.informarPagamentoDoCliente(slug, codigo, Instant.now(clock)), null));
     }
 
 }

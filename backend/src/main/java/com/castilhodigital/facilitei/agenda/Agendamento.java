@@ -18,6 +18,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -158,6 +159,89 @@ public class Agendamento extends BaseEntity {
         status = AgendamentoStatus.CONFIRMADO;
         sinalConfirmadoEm = agora;
         expiraEm = null;
+    }
+
+    /**
+     * O cliente avisou que pagou o sinal (Pix proprio): o horario segue segurado, agora por mais tempo, ate o
+     * dono conferir o extrato e confirmar. Tambem vale para quem avisa DEPOIS do prazo (a reserva expirou, mas o
+     * cliente pagou) - o horario so volta se ainda estiver livre, e quem decide isso e a constraint do banco quando
+     * este estado e gravado (o chamador trata ConflitoDeHorarioException).
+     *
+     * @param tokenHash hash do segredo do link enviado ao dono (ver TokenConfirmacao)
+     * @return true se mudou de estado agora (quem chama avisa o dono); false se ja estava esperando ou confirmado -
+     *         o cliente que toca no botao duas vezes nao pode gerar dois pedidos ao dono
+     */
+    public boolean informarPagamento(Instant agora, Duration prazoDeConfirmacao, String tokenHash) {
+        if (meioCobranca == null || !meioCobranca.confirmacaoManual()) {
+            throw new RegraDeNegocioException("Este pagamento é confirmado automaticamente, não é preciso avisar.");
+        }
+        switch (status) {
+            case AGUARDANDO_CONFIRMACAO, CONFIRMADO, CONCLUIDO, FALTOU -> {
+                return false;
+            }
+            case CANCELADO_CLIENTE, CANCELADO_NEGOCIO ->
+                    throw new RegraDeNegocioException("Este agendamento foi cancelado.");
+            case AGUARDANDO_PAGAMENTO, EXPIRADO -> {
+                if (!agora.isBefore(inicio)) {
+                    throw new RegraDeNegocioException("O horário deste agendamento já passou.");
+                }
+                Instant limite = agora.plus(prazoDeConfirmacao);
+                status = AgendamentoStatus.AGUARDANDO_CONFIRMACAO;
+                pagamentoInformadoEm = agora;
+                expiraEm = limite.isAfter(inicio) ? inicio : limite;   // segurar o horario alem da hora marcada nao faz sentido
+                tokenConfirmacaoHash = tokenHash;
+                return true;
+            }
+        }
+        throw new IllegalStateException("Status nao tratado: " + status);
+    }
+
+    /**
+     * O dono confirma que o Pix caiu (pelo link do WhatsApp ou pelo painel). Alem de quem esta esperando, aceita quem
+     * ja expirou: o dono atesta o recebimento e a reserva volta se o horario ainda estiver livre (constraint do banco).
+     *
+     * @return true se confirmou agora; false se ja estava confirmado (o dono clicou duas vezes)
+     */
+    public boolean confirmarPeloDono(Instant agora) {
+        switch (status) {
+            case CONFIRMADO, CONCLUIDO, FALTOU -> {
+                return false;
+            }
+            case AGUARDANDO_PAGAMENTO, AGUARDANDO_CONFIRMACAO -> {
+                confirmarSinal(agora);
+                return true;
+            }
+            case EXPIRADO -> {
+                reativarPorPagamentoTardio(agora);
+                return true;
+            }
+            case CANCELADO_CLIENTE, CANCELADO_NEGOCIO ->
+                    throw new RegraDeNegocioException("Este agendamento foi cancelado, o horário não pode mais ser confirmado.");
+        }
+        throw new IllegalStateException("Status nao tratado: " + status);
+    }
+
+    /**
+     * O dono nao encontrou o Pix no extrato: cancela e devolve o horario a agenda.
+     *
+     * @return true se cancelou agora; false se o horario ja estava liberado (expirado ou cancelado)
+     */
+    public boolean recusarPagamento() {
+        switch (status) {
+            case AGUARDANDO_CONFIRMACAO -> {
+                status = AgendamentoStatus.CANCELADO_NEGOCIO;
+                expiraEm = null;
+                return true;
+            }
+            case EXPIRADO, CANCELADO_CLIENTE, CANCELADO_NEGOCIO -> {
+                return false;
+            }
+            case AGUARDANDO_PAGAMENTO ->
+                    throw new RegraDeNegocioException("O cliente ainda não avisou que pagou. Para liberar o horário, cancele o agendamento.");
+            case CONFIRMADO, CONCLUIDO, FALTOU ->
+                    throw new RegraDeNegocioException("Este pagamento já foi confirmado. Para desfazer, cancele o agendamento no painel.");
+        }
+        throw new IllegalStateException("Status nao tratado: " + status);
     }
 
     /** Cancelamento feito pelo dono/funcionario; vale enquanto o atendimento ainda nao aconteceu. */

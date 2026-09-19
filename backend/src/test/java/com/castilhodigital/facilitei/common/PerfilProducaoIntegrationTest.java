@@ -28,6 +28,7 @@ import org.springframework.test.context.TestPropertySource;
         "CREDENTIALS_ENCRYPTION_KEY=Zq81LmXc0vNr47TbHy5WdKs92AeJfP63",
         "CREDENTIALS_ENCRYPTION_SALT=a1b2c3d4e5f60718",
         "NOTIFICATION_PROVIDER=myzap",
+        "FRONTEND_BASE_URL=https://app.barbearia.com.br",
         "MYZAP_API_KEY=chave-de-teste"})
 class PerfilProducaoIntegrationTest extends PostgresIntegrationTest {
 

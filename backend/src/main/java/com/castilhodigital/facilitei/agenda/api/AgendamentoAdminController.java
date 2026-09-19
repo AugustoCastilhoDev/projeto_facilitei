@@ -78,6 +78,13 @@ public class AgendamentoAdminController {
         return AgendamentoAdminResponse.de(agendamentoService.confirmarSinalManual(tenantId, agendamentoId, Instant.now(clock)));
     }
 
+    /** O dono conferiu o extrato e nao achou o Pix: recusa, o horario volta para a agenda e o cliente e avisado. */
+    @PostMapping("/{agendamentoId}/recusar-pagamento")
+    public AgendamentoAdminResponse recusarPagamento(@PathVariable Long tenantId, @PathVariable Long agendamentoId) {
+        tenantSecurityGuard.verificarAcessoAoTenant(tenantId);
+        return AgendamentoAdminResponse.de(agendamentoService.recusarPagamentoManual(tenantId, agendamentoId));
+    }
+
     @PostMapping("/{agendamentoId}/cancelar")
     public AgendamentoAdminResponse cancelar(@PathVariable Long tenantId, @PathVariable Long agendamentoId) {
         tenantSecurityGuard.verificarAcessoAoTenant(tenantId);

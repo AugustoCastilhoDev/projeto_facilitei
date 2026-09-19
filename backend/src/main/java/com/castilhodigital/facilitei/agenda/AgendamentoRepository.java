@@ -36,6 +36,27 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
 
     Optional<Agendamento> findByAsaasPaymentId(String asaasPaymentId);
 
+    // ---- buscas com lock, para quem vai MUDAR o estado ----
+    // Sem versao/lock, o job de expiracao e uma acao do dono (ou o webhook) que leem a mesma linha ao mesmo tempo
+    // sobrescrevem um ao outro: "confirmado" e "expirado" ao mesmo tempo, com o horario ja entregue a outra pessoa.
+    // O lock serializa os dois; quem chega depois le o estado ja atualizado. Todas filtram so por colunas do proprio
+    // agendamento (sem JOIN), para o FOR UPDATE nao segurar tambem a linha do negocio. NAO usar em transacao readOnly.
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Agendamento> findWithLockByIdAndTenantId(Long id, Long tenantId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Agendamento> findWithLockByCodigoPublicoAndTenantId(UUID codigoPublico, Long tenantId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Agendamento> findWithLockByTokenConfirmacaoHash(String tokenConfirmacaoHash);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    Optional<Agendamento> findWithLockByAsaasPaymentId(String asaasPaymentId);
+
+    /** Leitura do link do dono (so consulta: sem lock). */
+    Optional<Agendamento> findByTokenConfirmacaoHash(String tokenConfirmacaoHash);
+
     /**
      * Mesma busca, com o negocio ja carregado: o webhook precisa ler o token do negocio (asaasWebhookToken)
      * fora da transacao onde achou o agendamento (open-in-view=false) - sem o fetch, LazyInitializationException.

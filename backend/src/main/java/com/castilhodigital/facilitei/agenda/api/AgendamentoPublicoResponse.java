@@ -14,7 +14,9 @@ import java.util.UUID;
  * O que a pagina publica precisa saber do agendamento. Identificado so pelo codigo aleatorio (nunca o id
  * sequencial) e sem dados pessoais do cliente alem do necessario: quem tem o link ve o estado da propria reserva.
  *
- * @param pix presente enquanto ha sinal a pagar (AGUARDANDO_PAGAMENTO); nulo nos demais estados
+ * @param pix               presente enquanto ha sinal a pagar (AGUARDANDO_PAGAMENTO); nulo nos demais estados
+ * @param confirmacaoManual o sinal e um Pix na chave do dono: depois de pagar, o cliente toca em "Ja paguei" e o
+ *                          estabelecimento confere e confirma (AGUARDANDO_CONFIRMACAO). false = confirma sozinho
  */
 public record AgendamentoPublicoResponse(
         UUID codigo,
@@ -26,6 +28,7 @@ public record AgendamentoPublicoResponse(
         BigDecimal valorTotal,
         BigDecimal valorSinal,
         OffsetDateTime expiraEm,
+        boolean confirmacaoManual,
         Pix pix
 ) {
 
@@ -52,6 +55,7 @@ public record AgendamentoPublicoResponse(
                 agendamento.valorTotal(),
                 agendamento.valorSinal(),
                 agendamento.expiraEm() == null ? null : agendamento.expiraEm().atZone(fuso).toOffsetDateTime(),
+                agendamento.meioCobranca() != null && agendamento.meioCobranca().confirmacaoManual(),
                 cobranca == null ? null : new Pix(cobranca.payload(), cobranca.qrCodeBase64()));
     }
 

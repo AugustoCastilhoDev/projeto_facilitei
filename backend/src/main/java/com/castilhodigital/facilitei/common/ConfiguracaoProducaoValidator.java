@@ -32,14 +32,17 @@ public class ConfiguracaoProducaoValidator {
 
     private final String jwtSecret;
     private final String notificationProvider;
+    private final String frontendBaseUrl;
     private final CredentialsEncryptionProperties encryption;
 
     public ConfiguracaoProducaoValidator(
             @Value("${facilitei.jwt.secret}") String jwtSecret,
             @Value("${facilitei.notification.provider}") String notificationProvider,
+            @Value("${facilitei.frontend.base-url}") String frontendBaseUrl,
             CredentialsEncryptionProperties encryption) {
         this.jwtSecret = jwtSecret;
         this.notificationProvider = notificationProvider;
+        this.frontendBaseUrl = frontendBaseUrl;
         this.encryption = encryption;
     }
 
@@ -55,9 +58,24 @@ public class ConfiguracaoProducaoValidator {
             problemas.add("NOTIFICATION_PROVIDER=console so registra as mensagens no log (inclusive o codigo OTP) - use myzap.");
         }
 
+        validarUrlDoFrontend(problemas);
+
         if (!problemas.isEmpty()) {
             throw new IllegalStateException(
                     "Configuracao de producao insegura, a aplicacao nao vai subir:\n - " + String.join("\n - ", problemas));
+        }
+    }
+
+    /**
+     * Os links que vao por WhatsApp (o dono confirmando um Pix) usam este endereco. Em http o token do link trafegaria
+     * em texto puro, e localhost nao abre no celular de ninguem - o dono receberia um link morto.
+     */
+    private void validarUrlDoFrontend(List<String> problemas) {
+        String url = frontendBaseUrl == null ? "" : frontendBaseUrl.trim().toLowerCase();
+        if (!url.startsWith("https://")) {
+            problemas.add("FRONTEND_BASE_URL precisa ser o endereco publico do frontend em https (ex.: https://app.seudominio.com.br).");
+        } else if (url.contains("://localhost") || url.contains("://127.0.0.1")) {
+            problemas.add("FRONTEND_BASE_URL aponta para localhost: os links enviados por WhatsApp nao abririam para ninguem.");
         }
     }
 

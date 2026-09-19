@@ -2,6 +2,7 @@ package com.castilhodigital.facilitei.agenda;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -99,6 +100,75 @@ class AgendamentoPagamentoIntegrationTest extends CenarioBarbeariaIntegrationTes
 
         assertThat(statusDe(esperando.id())).isEqualTo(AgendamentoStatus.CANCELADO_NEGOCIO);
         assertThat(saida.getOut()).contains("CANCELADO").contains("devolver o valor ao cliente");
+    }
+
+    // ---- aviso ao dono: o dinheiro entrou por um horario que nao existe mais ----
+
+    private static final String WHATSAPP_DO_DONO = "5563977776666";
+
+    private void cadastrarWhatsAppDoDono() {
+        negocio.setTelefoneDono(WHATSAPP_DO_DONO);
+        negocio = tenantRepository.saveAndFlush(negocio);
+    }
+
+    /** Antes so havia log/Sentry - que o dono nao le. Ele e quem devolve o sinal, entao precisa saber pelo WhatsApp. */
+    @Test
+    void pagamentoTardioComHorarioOcupadoAvisaODonoNoWhatsAppComOClienteParaDevolver() {
+        cadastrarWhatsAppDoDono();
+        checkoutDoCorteAsDez();
+        agendamentoService.expirarVencidos(DEPOIS_DO_PRAZO);
+        agendamentoService.criar(pedidoComOutroTelefone(sp(10, 0)), DEPOIS_DO_PRAZO);
+
+        pagamentoService.processarPagamentoRecebido(COBRANCA, DEPOIS_DO_PRAZO.plusSeconds(30));
+
+        verify(notificationService).enviar(eq(WHATSAPP_DO_DONO), contains(
+                "Atenção: João, fone (63) 99999-9999, pagou o sinal de R$ 15,00 do horário de 21/09 às 10:00, "
+                        + "mas o prazo já tinha acabado e o horário foi ocupado por outra pessoa. Devolva o valor ao cliente."));
+    }
+
+    @Test
+    void pagamentoDeAgendamentoCanceladoTambemAvisaODono() {
+        cadastrarWhatsAppDoDono();
+        AgendamentoView esperando = checkoutDoCorteAsDez();
+        agendamentoService.cancelarPeloNegocio(negocio.getId(), esperando.id());
+
+        pagamentoService.processarPagamentoRecebido(COBRANCA, AGORA.plusSeconds(60));
+
+        verify(notificationService).enviar(eq(WHATSAPP_DO_DONO), contains("mas esse agendamento já estava cancelado"));
+    }
+
+    @Test
+    void pagamentoTardioQueAindaCabeNaAgendaNaoIncomodaODono() {
+        cadastrarWhatsAppDoDono();
+        checkoutDoCorteAsDez();
+        agendamentoService.expirarVencidos(DEPOIS_DO_PRAZO);
+
+        pagamentoService.processarPagamentoRecebido(COBRANCA, DEPOIS_DO_PRAZO.plusSeconds(30));
+
+        verify(notificationService, never()).enviar(eq(WHATSAPP_DO_DONO), anyString());
+    }
+
+    /** Sem WhatsApp cadastrado o aviso nao tem para onde ir, mas o log/Sentry seguem e nada quebra. */
+    @Test
+    void semWhatsAppDoDonoOAlertaSegueNoLogENaoQuebra(CapturedOutput saida) {
+        AgendamentoView esperando = checkoutDoCorteAsDez();
+        agendamentoService.cancelarPeloNegocio(negocio.getId(), esperando.id());
+
+        assertThatCode(() -> pagamentoService.processarPagamentoRecebido(COBRANCA, AGORA.plusSeconds(60)))
+                .doesNotThrowAnyException();
+
+        assertThat(saida.getOut()).contains("devolver o valor ao cliente").contains("nao tem WhatsApp do dono cadastrado");
+    }
+
+    @Test
+    void falhaNoWhatsAppDoDonoNaoImpedeOTratamentoDoPagamento() {
+        cadastrarWhatsAppDoDono();
+        AgendamentoView esperando = checkoutDoCorteAsDez();
+        agendamentoService.cancelarPeloNegocio(negocio.getId(), esperando.id());
+        doThrow(new RuntimeException("MyZap fora do ar")).when(notificationService).enviar(eq(WHATSAPP_DO_DONO), anyString());
+
+        assertThatCode(() -> pagamentoService.processarPagamentoRecebido(COBRANCA, AGORA.plusSeconds(60)))
+                .doesNotThrowAnyException();
     }
 
     @Test

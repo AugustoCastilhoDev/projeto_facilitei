@@ -49,8 +49,19 @@ public class AgendamentoService {
     /** Quanto o horario fica segurado esperando o sinal quando a confirmacao e automatica (webhook do gateway). */
     static final Duration PRAZO_PAGAMENTO_AUTOMATICO = Duration.ofMinutes(15);
 
+    /**
+     * Quanto o horario fica segurado depois de o cliente avisar que pagou (Pix proprio), esperando o dono conferir o
+     * extrato e confirmar. Mais folgado que o prazo do pagamento: o dono pode estar atendendo e so olhar o celular depois.
+     */
+    static final Duration PRAZO_CONFIRMACAO_MANUAL = Duration.ofMinutes(60);
+
     /** Limite de reservas segurando horario sem pagar, por telefone e negocio - contra quem "esgota" a agenda. */
     static final int MAX_RESERVAS_EM_ESPERA_POR_TELEFONE = 2;
+
+    private static final String MENSAGEM_HORARIO_OCUPADO_NA_CONFIRMACAO =
+            "O horário deste agendamento já foi ocupado por outra pessoa e não pode mais ser confirmado. Devolva o sinal ao cliente.";
+    private static final String MENSAGEM_HORARIO_OCUPADO_NO_AVISO =
+            "O prazo para pagar acabou e outra pessoa reservou este horário. Se você já pagou, fale com o estabelecimento: o sinal será devolvido.";
 
     private static final int LOTE_DE_EXPIRACAO = 200;
     private static final BigDecimal CEM = BigDecimal.valueOf(100);
@@ -168,11 +179,15 @@ public class AgendamentoService {
 
     /** A constraint de exclusao do banco e quem decide a corrida; aqui so traduzimos a colisao em 409. */
     private Agendamento gravar(Agendamento agendamento) {
+        return gravar(agendamento, "Este horário acabou de ser ocupado. Escolha outro.");
+    }
+
+    private Agendamento gravar(Agendamento agendamento, String mensagemDeConflito) {
         try {
             return agendamentoRepository.saveAndFlush(agendamento);
         } catch (DataIntegrityViolationException ex) {
             if (PostgresErros.ehViolacaoDeExclusao(ex)) {
-                throw new ConflitoDeHorarioException("Este horário acabou de ser ocupado. Escolha outro.");
+                throw new ConflitoDeHorarioException(mensagemDeConflito);
             }
             throw ex;
         }
@@ -236,7 +251,7 @@ public class AgendamentoService {
      */
     @Transactional
     public ResultadoPagamento registrarPagamento(String cobrancaExternaId, Instant agora) {
-        Optional<Agendamento> encontrado = agendamentoRepository.findByAsaasPaymentId(cobrancaExternaId);
+        Optional<Agendamento> encontrado = agendamentoRepository.findWithLockByAsaasPaymentId(cobrancaExternaId);
         if (encontrado.isEmpty()) {
             return ResultadoPagamento.DESCONHECIDO;
         }
@@ -262,7 +277,7 @@ public class AgendamentoService {
      */
     @Transactional
     public AgendamentoView reativarPorPagamentoTardio(String cobrancaExternaId, Instant agora) {
-        Agendamento agendamento = agendamentoRepository.findByAsaasPaymentId(cobrancaExternaId)
+        Agendamento agendamento = agendamentoRepository.findWithLockByAsaasPaymentId(cobrancaExternaId)
                 .orElseThrow(() -> new EntidadeNaoEncontradaException("Agendamento não encontrado para a cobrança."));
         agendamento.reativarPorPagamentoTardio(agora);
 
@@ -273,23 +288,21 @@ public class AgendamentoService {
 
     // ---- acoes do painel ----
 
+    /** O dono confirma que recebeu o sinal, pelo painel. Idempotente; se a reserva ja expirou, volta so se o horario estiver livre (409). */
     @Transactional
     public AgendamentoView confirmarSinalManual(Long tenantId, Long agendamentoId, Instant agora) {
-        Agendamento agendamento = buscarEntidadeDoTenant(tenantId, agendamentoId);
-        boolean estavaEsperando = agendamento.getStatus().aguardaSinal();
+        return confirmarPeloDono(buscarEntidadeDoTenantParaAtualizar(tenantId, agendamentoId), agora);
+    }
 
-        agendamento.confirmarSinal(agora);
-
-        AgendamentoView view = AgendamentoView.de(agendamento);
-        if (estavaEsperando) {
-            publicar(AgendamentoEvento.Tipo.CONFIRMADO, view);
-        }
-        return view;
+    /** O dono nao achou o Pix no extrato, pelo painel: cancela e devolve o horario. So vale depois de o cliente avisar que pagou. */
+    @Transactional
+    public AgendamentoView recusarPagamentoManual(Long tenantId, Long agendamentoId) {
+        return recusarPagamento(buscarEntidadeDoTenantParaAtualizar(tenantId, agendamentoId));
     }
 
     @Transactional
     public AgendamentoView cancelarPeloNegocio(Long tenantId, Long agendamentoId) {
-        Agendamento agendamento = buscarEntidadeDoTenant(tenantId, agendamentoId);
+        Agendamento agendamento = buscarEntidadeDoTenantParaAtualizar(tenantId, agendamentoId);
         agendamento.cancelarPeloNegocio();
 
         AgendamentoView view = AgendamentoView.de(agendamento);
@@ -299,16 +312,92 @@ public class AgendamentoService {
 
     @Transactional
     public AgendamentoView concluir(Long tenantId, Long agendamentoId, Instant agora) {
-        Agendamento agendamento = buscarEntidadeDoTenant(tenantId, agendamentoId);
+        Agendamento agendamento = buscarEntidadeDoTenantParaAtualizar(tenantId, agendamentoId);
         agendamento.concluir(agora);
         return AgendamentoView.de(agendamento);
     }
 
     @Transactional
     public AgendamentoView marcarFalta(Long tenantId, Long agendamentoId, Instant agora) {
-        Agendamento agendamento = buscarEntidadeDoTenant(tenantId, agendamentoId);
+        Agendamento agendamento = buscarEntidadeDoTenantParaAtualizar(tenantId, agendamentoId);
         agendamento.marcarFalta(agora);
         return AgendamentoView.de(agendamento);
+    }
+
+    // ---- Pix proprio: o cliente avisa que pagou e o dono confere e confirma ----
+
+    /**
+     * O cliente avisa que pagou (botao "Ja paguei"): o horario passa a ficar segurado por mais tempo e o dono recebe,
+     * no WhatsApp, o link para conferir e confirmar. Idempotente - tocar duas vezes nao manda dois pedidos ao dono.
+     * Vale tambem depois de a reserva expirar (o cliente pagou, so demorou): o horario volta se ainda estiver livre;
+     * se nao, sobe ConflitoDeHorarioException e cabe a AgendamentoPagamentoService avisar o dono do dinheiro perdido.
+     */
+    @Transactional
+    public AgendamentoView informarPagamento(String slug, UUID codigoPublico, Instant agora) {
+        Tenant tenant = tenantService.buscarPorSlug(slug);
+        Agendamento agendamento = agendamentoRepository
+                .findWithLockByCodigoPublicoAndTenantId(codigoPublico, tenant.getId())
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("Agendamento não encontrado."));
+
+        TokenConfirmacao.Gerado token = TokenConfirmacao.gerar();
+        if (!agendamento.informarPagamento(agora, PRAZO_CONFIRMACAO_MANUAL, token.hash())) {
+            return AgendamentoView.de(agendamento);
+        }
+        AgendamentoView view = AgendamentoView.de(gravar(agendamento, MENSAGEM_HORARIO_OCUPADO_NO_AVISO));
+        publicar(AgendamentoEvento.Tipo.PAGAMENTO_INFORMADO, view, token.valor());
+        return view;
+    }
+
+    /** Lado publico do link do dono: mostra o que esta sendo confirmado. So o dono tem o token (ver TokenConfirmacao). */
+    @Transactional(readOnly = true)
+    public AgendamentoView buscarPorTokenDoDono(String token) {
+        return agendamentoRepository.findByTokenConfirmacaoHash(hashDoToken(token))
+                .map(AgendamentoView::de)
+                .orElseThrow(this::linkDeConfirmacaoInvalido);
+    }
+
+    @Transactional
+    public AgendamentoView confirmarPorToken(String token, Instant agora) {
+        return confirmarPeloDono(buscarPorTokenParaAtualizar(token), agora);
+    }
+
+    @Transactional
+    public AgendamentoView recusarPorToken(String token) {
+        return recusarPagamento(buscarPorTokenParaAtualizar(token));
+    }
+
+    private Agendamento buscarPorTokenParaAtualizar(String token) {
+        return agendamentoRepository.findWithLockByTokenConfirmacaoHash(hashDoToken(token))
+                .orElseThrow(this::linkDeConfirmacaoInvalido);
+    }
+
+    private String hashDoToken(String token) {
+        if (!TokenConfirmacao.formatoValido(token)) {
+            throw linkDeConfirmacaoInvalido();
+        }
+        return TokenConfirmacao.hash(token);
+    }
+
+    private EntidadeNaoEncontradaException linkDeConfirmacaoInvalido() {
+        return new EntidadeNaoEncontradaException("Link inválido ou substituído por um mais recente.");
+    }
+
+    private AgendamentoView confirmarPeloDono(Agendamento agendamento, Instant agora) {
+        if (!agendamento.confirmarPeloDono(agora)) {
+            return AgendamentoView.de(agendamento);
+        }
+        AgendamentoView view = AgendamentoView.de(gravar(agendamento, MENSAGEM_HORARIO_OCUPADO_NA_CONFIRMACAO));
+        publicar(AgendamentoEvento.Tipo.CONFIRMADO, view);
+        return view;
+    }
+
+    private AgendamentoView recusarPagamento(Agendamento agendamento) {
+        boolean recusou = agendamento.recusarPagamento();
+        AgendamentoView view = AgendamentoView.de(agendamento);
+        if (recusou) {
+            publicar(AgendamentoEvento.Tipo.PAGAMENTO_NAO_LOCALIZADO, view);
+        }
+        return view;
     }
 
     // ---- expiracao ----
@@ -339,6 +428,12 @@ public class AgendamentoService {
         return AgendamentoView.de(buscarEntidadeDoTenant(tenantId, agendamentoId));
     }
 
+    /** O agendamento de uma cobranca (para montar o aviso de dinheiro sem horario); vazio se a cobranca nao e de nenhum. */
+    @Transactional(readOnly = true)
+    public Optional<AgendamentoView> buscarPorCobrancaExterna(String cobrancaExternaId) {
+        return agendamentoRepository.findByAsaasPaymentId(cobrancaExternaId).map(AgendamentoView::de);
+    }
+
     /** Consulta publica por codigo aleatorio, sempre dentro do negocio do link. */
     @Transactional(readOnly = true)
     public AgendamentoView buscarPorCodigoPublico(String slug, UUID codigoPublico) {
@@ -363,6 +458,12 @@ public class AgendamentoService {
                 .orElseThrow(() -> new EntidadeNaoEncontradaException("Agendamento não encontrado (id=" + agendamentoId + ")."));
     }
 
+    /** Para quem vai mudar o estado: com lock (ver AgendamentoRepository). Nao usar em transacao readOnly. */
+    private Agendamento buscarEntidadeDoTenantParaAtualizar(Long tenantId, Long agendamentoId) {
+        return agendamentoRepository.findWithLockByIdAndTenantId(agendamentoId, tenantId)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("Agendamento não encontrado (id=" + agendamentoId + ")."));
+    }
+
     private Agendamento buscarEntidadeDoTenant(Long tenantId, Long agendamentoId) {
         return agendamentoRepository.findByIdAndTenantId(agendamentoId, tenantId)
                 .orElseThrow(() -> new EntidadeNaoEncontradaException("Agendamento não encontrado (id=" + agendamentoId + ")."));
@@ -370,6 +471,10 @@ public class AgendamentoService {
 
     private void publicar(AgendamentoEvento.Tipo tipo, AgendamentoView view) {
         eventPublisher.publishEvent(AgendamentoEvento.de(tipo, view));
+    }
+
+    private void publicar(AgendamentoEvento.Tipo tipo, AgendamentoView view, String tokenConfirmacao) {
+        eventPublisher.publishEvent(AgendamentoEvento.de(tipo, view, tokenConfirmacao));
     }
 
 }
