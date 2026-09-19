@@ -35,6 +35,7 @@ public record AgendamentoView(
         Instant expiraEm,
         String cobrancaExternaId,
         String pixPayload,
+        Instant sinalConfirmadoEm,
         List<Servico> servicos
 ) {
 
@@ -63,6 +64,7 @@ public record AgendamentoView(
                 agendamento.getExpiraEm(),
                 agendamento.getAsaasPaymentId(),
                 agendamento.getPixPayload(),
+                agendamento.getSinalConfirmadoEm(),
                 agendamento.getServicos().stream()
                         .map(servico -> new Servico(servico.getNome(), servico.getDuracaoMin(), servico.getPreco()))
                         .toList());

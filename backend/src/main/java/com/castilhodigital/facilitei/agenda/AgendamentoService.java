@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -203,6 +204,68 @@ public class AgendamentoService {
     @Transactional
     public void liberarPorFalhaNaCobranca(Long agendamentoId) {
         buscarEntidade(agendamentoId).liberarPorFalhaNaCobranca();
+    }
+
+    // ---- pagamento confirmado pelo gateway (webhook) ----
+
+    /** O que aconteceu com um agendamento quando o gateway avisou que o sinal foi pago. */
+    public enum ResultadoPagamento {
+        /** Estava esperando e agora esta confirmado. */
+        CONFIRMADO,
+        /** Ja estava confirmado (o gateway reenvia o mesmo evento): nada a fazer. */
+        JA_ESTAVA_CONFIRMADO,
+        /** Expirou antes de o pagamento chegar: o horario pode ou nao estar livre ainda. */
+        HORARIO_LIBERADO,
+        /** O agendamento foi cancelado: o dinheiro entrou por um horario que nao existe mais. */
+        CANCELADO,
+        /** Nenhum agendamento com essa cobranca. */
+        DESCONHECIDO
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Tenant> buscarTenantDaCobranca(String cobrancaExternaId) {
+        return agendamentoRepository.findByAsaasPaymentIdComTenant(cobrancaExternaId).map(Agendamento::getTenant);
+    }
+
+    /**
+     * Registra o pagamento do sinal. Idempotente: webhooks repetem, e o mesmo evento processado de novo
+     * nao pode dar erro, mudar o status nem avisar o cliente duas vezes.
+     */
+    @Transactional
+    public ResultadoPagamento registrarPagamento(String cobrancaExternaId, Instant agora) {
+        Optional<Agendamento> encontrado = agendamentoRepository.findByAsaasPaymentId(cobrancaExternaId);
+        if (encontrado.isEmpty()) {
+            return ResultadoPagamento.DESCONHECIDO;
+        }
+        Agendamento agendamento = encontrado.get();
+
+        return switch (agendamento.getStatus()) {
+            case AGUARDANDO_PAGAMENTO, AGUARDANDO_CONFIRMACAO -> {
+                agendamento.confirmarSinal(agora);
+                publicar(AgendamentoEvento.Tipo.CONFIRMADO, AgendamentoView.de(agendamento));
+                yield ResultadoPagamento.CONFIRMADO;
+            }
+            case CONFIRMADO, CONCLUIDO, FALTOU -> ResultadoPagamento.JA_ESTAVA_CONFIRMADO;
+            case EXPIRADO -> ResultadoPagamento.HORARIO_LIBERADO;
+            case CANCELADO_CLIENTE, CANCELADO_NEGOCIO -> ResultadoPagamento.CANCELADO;
+        };
+    }
+
+    /**
+     * Pagamento que chegou depois de o prazo acabar: tenta trazer o agendamento de volta. Se outra pessoa ja
+     * tomou o horario, a constraint do banco recusa e sobe ConflitoDeHorarioException - por isso esta
+     * tentativa e uma transacao PROPRIA, separada de registrarPagamento (uma violacao de constraint deixa a
+     * transacao inutilizavel, e o chamador ainda precisa decidir o que fazer com o dinheiro recebido).
+     */
+    @Transactional
+    public AgendamentoView reativarPorPagamentoTardio(String cobrancaExternaId, Instant agora) {
+        Agendamento agendamento = agendamentoRepository.findByAsaasPaymentId(cobrancaExternaId)
+                .orElseThrow(() -> new EntidadeNaoEncontradaException("Agendamento não encontrado para a cobrança."));
+        agendamento.reativarPorPagamentoTardio(agora);
+
+        AgendamentoView view = AgendamentoView.de(gravar(agendamento));
+        publicar(AgendamentoEvento.Tipo.CONFIRMADO, view);
+        return view;
     }
 
     // ---- acoes do painel ----

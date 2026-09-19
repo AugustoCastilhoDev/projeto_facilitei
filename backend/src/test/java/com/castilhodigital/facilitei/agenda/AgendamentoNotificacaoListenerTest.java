@@ -19,7 +19,7 @@ class AgendamentoNotificacaoListenerTest {
 
     private AgendamentoEvento evento(Tipo tipo) {
         return new AgendamentoEvento(tipo, 1L, 1L, "Barbearia do Zé", ZoneId.of("America/Sao_Paulo"),
-                "João", "5563999999999", INICIO, Instant.parse("2026-10-01T12:15:00Z"), "pay_1");
+                "João", "5563999999999", INICIO, Instant.parse("2026-10-01T12:15:00Z"), "pay_1", false);
     }
 
     @Test

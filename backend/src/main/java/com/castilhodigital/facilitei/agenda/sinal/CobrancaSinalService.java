@@ -29,4 +29,10 @@ public interface CobrancaSinalService {
     /** Reobtem a imagem do QR de uma cobranca pendente (nao e persistida); vazio se este meio nao tem como. */
     Optional<String> buscarQrCodeBase64(Tenant tenant, String cobrancaExternaId);
 
+    /**
+     * Cancela uma cobranca ainda nao paga (o horario foi liberado ou o dono cancelou), para ninguem pagar por
+     * um horario que nao e mais dele. Melhor esforco: quem chama nao deve deixar isso desfazer o que ja aconteceu.
+     */
+    void cancelar(Tenant tenant, String cobrancaExternaId);
+
 }

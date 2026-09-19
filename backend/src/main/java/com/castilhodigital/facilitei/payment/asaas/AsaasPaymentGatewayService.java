@@ -39,4 +39,9 @@ public class AsaasPaymentGatewayService implements PaymentGatewayService {
         return new PixChargeResult(paymentId, qrCode.payload(), qrCode.encodedImage());
     }
 
+    @Override
+    public void cancelarCobranca(String apiKey, String paymentId) {
+        asaasClient.cancelarCobranca(apiKey, paymentId);
+    }
+
 }

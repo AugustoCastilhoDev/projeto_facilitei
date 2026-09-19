@@ -1,15 +1,18 @@
 package com.castilhodigital.facilitei.payment.asaas;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.castilhodigital.facilitei.agenda.AgendamentoPagamentoService;
 import com.castilhodigital.facilitei.booking.BookingService;
 import com.castilhodigital.facilitei.common.exception.EntidadeNaoEncontradaException;
 import com.castilhodigital.facilitei.tenant.Tenant;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +36,9 @@ class AsaasWebhookControllerTest {
 
     @MockitoBean
     private BookingService bookingService;
+
+    @MockitoBean
+    private AgendamentoPagamentoService agendamentoPagamentoService;
 
     @BeforeEach
     void setUp() {
@@ -121,17 +127,77 @@ class AsaasWebhookControllerTest {
         verify(bookingService).marcarComoExpirado("pay_1");
     }
 
+    /**
+     * Na conta Asaas do proprio negocio entram cobrancas que nao sao do Facilitei; responder erro aqui faria a Asaas
+     * pausar a fila do webhook e deixar de entregar as confirmacoes de sinal que importam. Sem dono nao ha token
+     * para validar, entao nao se processa nada - so se responde 200.
+     */
     @Test
-    void eventoParaPagamentoDesconhecidoRetorna404() throws Exception {
+    void eventoParaPagamentoDesconhecidoRetorna200SemProcessarNada() throws Exception {
         when(bookingService.buscarTenantPeloAsaasPaymentId("pay_desconhecido"))
                 .thenThrow(new EntidadeNaoEncontradaException("Nenhuma reserva encontrada."));
         String body = "{\"event\":\"PAYMENT_CONFIRMED\",\"payment\":{\"id\":\"pay_desconhecido\",\"status\":\"CONFIRMED\"}}";
 
         mockMvc.perform(post("/api/webhooks/asaas")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk());
+
+        verify(bookingService, never()).confirmarPagamento(any());
+        verify(agendamentoPagamentoService, never()).processarPagamentoRecebido(any(), any());
+    }
+
+    // ---- nova agenda (agendamentos) ----
+
+    private void cobrancaDaNovaAgenda(String paymentId) {
+        Tenant tenant = new Tenant();
+        tenant.setSlug("negocio-teste");
+        tenant.setAsaasWebhookToken("segredo-teste");
+        when(agendamentoPagamentoService.buscarTenantDaCobranca(paymentId)).thenReturn(Optional.of(tenant));
+    }
+
+    @Test
+    void pagamentoConfirmadoDeAgendamentoDaNovaAgendaVaiParaOServicoDeAgendamento() throws Exception {
+        cobrancaDaNovaAgenda("pay_novo");
+        String body = "{\"event\":\"PAYMENT_RECEIVED\",\"payment\":{\"id\":\"pay_novo\",\"status\":\"RECEIVED\"}}";
+
+        mockMvc.perform(post("/api/webhooks/asaas")
                         .header("asaas-access-token", "segredo-teste")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isOk());
+
+        verify(agendamentoPagamentoService).processarPagamentoRecebido(eq("pay_novo"), any());
+        verify(bookingService, never()).confirmarPagamento(any());
+    }
+
+    @Test
+    void tokenInvalidoNaNovaAgendaRetorna401ENaoProcessa() throws Exception {
+        cobrancaDaNovaAgenda("pay_novo");
+        String body = "{\"event\":\"PAYMENT_CONFIRMED\",\"payment\":{\"id\":\"pay_novo\",\"status\":\"CONFIRMED\"}}";
+
+        mockMvc.perform(post("/api/webhooks/asaas")
+                        .header("asaas-access-token", "token-errado")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isUnauthorized());
+
+        verify(agendamentoPagamentoService, never()).processarPagamentoRecebido(any(), any());
+    }
+
+    @Test
+    void cobrancaVencidaDaNovaAgendaNaoFazNada() throws Exception {
+        cobrancaDaNovaAgenda("pay_novo");
+        String body = "{\"event\":\"PAYMENT_OVERDUE\",\"payment\":{\"id\":\"pay_novo\",\"status\":\"OVERDUE\"}}";
+
+        mockMvc.perform(post("/api/webhooks/asaas")
+                        .header("asaas-access-token", "segredo-teste")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk());
+
+        verify(agendamentoPagamentoService, never()).processarPagamentoRecebido(any(), any());
+        verify(bookingService, never()).marcarComoExpirado(any());
     }
 
 }

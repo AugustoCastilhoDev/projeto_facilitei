@@ -49,4 +49,9 @@ class AsaasCobrancaSinalService implements CobrancaSinalService {
                 paymentGatewayService.buscarQrCodePix(tenant.getAsaasApiKey(), cobrancaExternaId).qrCodeImagemBase64());
     }
 
+    @Override
+    public void cancelar(Tenant tenant, String cobrancaExternaId) {
+        paymentGatewayService.cancelarCobranca(tenant.getAsaasApiKey(), cobrancaExternaId);
+    }
+
 }

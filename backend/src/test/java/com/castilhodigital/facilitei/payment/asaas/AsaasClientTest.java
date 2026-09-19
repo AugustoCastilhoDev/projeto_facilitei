@@ -93,6 +93,29 @@ class AsaasClientTest {
     }
 
     @Test
+    void cancelarCobrancaFazDeleteNoPagamentoComAChaveDoTenant() {
+        mockServer.expect(requestTo(BASE_URL + "/payments/pay_123"))
+                .andExpect(method(HttpMethod.DELETE))
+                .andExpect(header("access_token", API_KEY))
+                .andRespond(withSuccess("{\"deleted\":true,\"id\":\"pay_123\"}", MediaType.APPLICATION_JSON));
+
+        asaasClient.cancelarCobranca(API_KEY, "pay_123");
+
+        mockServer.verify();
+    }
+
+    @Test
+    void cancelarCobrancaJaPagaViraPaymentGatewayException() {
+        mockServer.expect(requestTo(BASE_URL + "/payments/pay_123"))
+                .andRespond(withStatus(HttpStatus.BAD_REQUEST)
+                        .body("{\"errors\":[{\"description\":\"cobranca ja recebida\"}]}")
+                        .contentType(MediaType.APPLICATION_JSON));
+
+        assertThatThrownBy(() -> asaasClient.cancelarCobranca(API_KEY, "pay_123"))
+                .isInstanceOf(PaymentGatewayException.class).hasMessageContaining("cobranca ja recebida");
+    }
+
+    @Test
     void erroDoAsaasViraPaymentGatewayException() {
         mockServer.expect(requestTo(BASE_URL + "/customers"))
                 .andRespond(withStatus(HttpStatus.BAD_REQUEST)

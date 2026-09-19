@@ -36,6 +36,13 @@ public interface AgendamentoRepository extends JpaRepository<Agendamento, Long> 
 
     Optional<Agendamento> findByAsaasPaymentId(String asaasPaymentId);
 
+    /**
+     * Mesma busca, com o negocio ja carregado: o webhook precisa ler o token do negocio (asaasWebhookToken)
+     * fora da transacao onde achou o agendamento (open-in-view=false) - sem o fetch, LazyInitializationException.
+     */
+    @Query("SELECT a FROM Agendamento a JOIN FETCH a.tenant WHERE a.asaasPaymentId = :asaasPaymentId")
+    Optional<Agendamento> findByAsaasPaymentIdComTenant(@Param("asaasPaymentId") String asaasPaymentId);
+
     /** Quantas reservas deste telefone estao segurando horario sem pagar - limite contra quem "esgota" a agenda de um negocio. */
     long countByTenantIdAndClienteTelefoneAndStatusIn(Long tenantId, String clienteTelefone,
                                                        Collection<AgendamentoStatus> statuses);
