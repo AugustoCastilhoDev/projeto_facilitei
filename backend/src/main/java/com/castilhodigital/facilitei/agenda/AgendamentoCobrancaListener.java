@@ -29,12 +29,13 @@ class AgendamentoCobrancaListener {
     void cancelarCobrancaPendente(AgendamentoEvento evento) {
         boolean horarioLiberado = evento.tipo() == AgendamentoEvento.Tipo.EXPIRADO
                 || evento.tipo() == AgendamentoEvento.Tipo.CANCELADO_PELO_NEGOCIO;
-        if (!horarioLiberado || evento.cobrancaExternaId() == null || evento.sinalConfirmado()) {
+        if (!horarioLiberado || evento.meioCobranca() == null || evento.cobrancaExternaId() == null
+                || evento.sinalConfirmado()) {
             return;
         }
         try {
             Tenant tenant = tenantService.buscarPorId(evento.tenantId());
-            cobrancaSinalResolver.exigir(tenant).cancelar(tenant, evento.cobrancaExternaId());
+            cobrancaSinalResolver.porMeio(evento.meioCobranca()).cancelar(tenant, evento.cobrancaExternaId());
         } catch (RuntimeException ex) {
             log.warn("Nao foi possivel cancelar a cobranca {} do agendamento {}: {}",
                     evento.cobrancaExternaId(), evento.agendamentoId(), ex.getMessage());

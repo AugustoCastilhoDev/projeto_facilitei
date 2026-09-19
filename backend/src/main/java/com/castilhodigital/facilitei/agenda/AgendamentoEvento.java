@@ -1,5 +1,6 @@
 package com.castilhodigital.facilitei.agenda;
 
+import com.castilhodigital.facilitei.agenda.sinal.MeioCobranca;
 import java.time.Instant;
 import java.time.ZoneId;
 
@@ -23,6 +24,7 @@ public record AgendamentoEvento(
         String clienteTelefone,
         Instant inicio,
         Instant expiraEm,
+        MeioCobranca meioCobranca,
         String cobrancaExternaId,
         /** O sinal ja foi pago: cancelar a cobranca no gateway nao faz mais sentido (seria caso de devolucao). */
         boolean sinalConfirmado
@@ -42,7 +44,8 @@ public record AgendamentoEvento(
     public static AgendamentoEvento de(Tipo tipo, AgendamentoView agendamento) {
         return new AgendamentoEvento(tipo, agendamento.id(), agendamento.tenantId(), agendamento.tenantNome(),
                 agendamento.fuso(), agendamento.clienteNome(), agendamento.clienteTelefone(), agendamento.inicio(),
-                agendamento.expiraEm(), agendamento.cobrancaExternaId(), agendamento.sinalConfirmadoEm() != null);
+                agendamento.expiraEm(), agendamento.meioCobranca(), agendamento.cobrancaExternaId(),
+                agendamento.sinalConfirmadoEm() != null);
     }
 
 }

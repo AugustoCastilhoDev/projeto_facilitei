@@ -119,6 +119,9 @@ abstract class AgendaIntegrationTest extends PostgresIntegrationTest {
         if (status.aguardaSinal()) {
             agendamento.setExpiraEm(inicio.minusSeconds(3600));
         }
+        if (status == AgendamentoStatus.AGUARDANDO_CONFIRMACAO) {
+            agendamento.setPagamentoInformadoEm(inicio.minusSeconds(3900)); // o banco exige o aviso do cliente neste estado
+        }
         return agendamento;
     }
 

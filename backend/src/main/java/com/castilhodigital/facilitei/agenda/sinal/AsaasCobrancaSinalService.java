@@ -8,6 +8,7 @@ import com.castilhodigital.facilitei.payment.PixChargeResult;
 import com.castilhodigital.facilitei.tenant.Tenant;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
@@ -16,10 +17,16 @@ import org.springframework.stereotype.Component;
  * Confirmacao automatica, pelo webhook da Asaas.
  */
 @Component
+@Order(1)
 @RequiredArgsConstructor
 class AsaasCobrancaSinalService implements CobrancaSinalService {
 
     private final PaymentGatewayService paymentGatewayService;
+
+    @Override
+    public MeioCobranca meio() {
+        return MeioCobranca.ASAAS;
+    }
 
     @Override
     public boolean atende(Tenant tenant) {

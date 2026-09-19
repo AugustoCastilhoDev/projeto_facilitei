@@ -1,5 +1,6 @@
 package com.castilhodigital.facilitei.agenda;
 
+import com.castilhodigital.facilitei.agenda.sinal.MeioCobranca;
 import com.castilhodigital.facilitei.cliente.Cliente;
 import com.castilhodigital.facilitei.common.BaseEntity;
 import com.castilhodigital.facilitei.common.exception.RegraDeNegocioException;
@@ -91,6 +92,11 @@ public class Agendamento extends BaseEntity {
     @Column(name = "expira_em")
     private Instant expiraEm;
 
+    /** Por qual meio o sinal deste agendamento foi cobrado; nulo se nao ha sinal. Guardado porque o dono pode trocar de meio depois. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "meio_cobranca", length = 20)
+    private MeioCobranca meioCobranca;
+
     @Column(name = "asaas_payment_id")
     private String asaasPaymentId;
 
@@ -100,6 +106,14 @@ public class Agendamento extends BaseEntity {
 
     @Column(name = "sinal_confirmado_em")
     private Instant sinalConfirmadoEm;
+
+    /** Pix proprio: quando o cliente disse "ja paguei". O dono ainda precisa conferir no banco e confirmar. */
+    @Column(name = "pagamento_informado_em")
+    private Instant pagamentoInformadoEm;
+
+    /** SHA-256 do token do link enviado ao dono (ver TokenConfirmacao); o token em si nunca e gravado. */
+    @Column(name = "token_confirmacao_hash", length = 64)
+    private String tokenConfirmacaoHash;
 
     @OneToMany(mappedBy = "agendamento", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("ordem ASC")

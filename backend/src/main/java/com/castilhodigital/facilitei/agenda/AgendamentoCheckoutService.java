@@ -40,7 +40,8 @@ public class AgendamentoCheckoutService {
         }
 
         Tenant tenant = tenantService.buscarPorId(pedido.tenantId());
-        CobrancaSinalService meioDeCobranca = cobrancaSinalResolver.exigir(tenant);
+        // o meio e o que ficou gravado na criacao: o dono pode ter trocado de meio nos milissegundos entre os dois passos
+        CobrancaSinalService meioDeCobranca = cobrancaSinalResolver.porMeio(criado.meioCobranca());
 
         CobrancaSinal cobranca;
         try {
@@ -71,7 +72,7 @@ public class AgendamentoCheckoutService {
         if (agendamento.cobrancaExternaId() != null) {
             try {
                 Tenant tenant = tenantService.buscarPorId(agendamento.tenantId());
-                qrCode = cobrancaSinalResolver.exigir(tenant)
+                qrCode = cobrancaSinalResolver.porMeio(agendamento.meioCobranca())
                         .buscarQrCodeBase64(tenant, agendamento.cobrancaExternaId()).orElse(null);
             } catch (RuntimeException ex) {
                 log.warn("Nao foi possivel rebuscar o QR do agendamento {}: {}", agendamento.id(), ex.getMessage());

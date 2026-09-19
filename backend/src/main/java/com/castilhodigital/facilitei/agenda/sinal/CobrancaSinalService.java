@@ -5,11 +5,14 @@ import java.util.Optional;
 
 /**
  * Como o sinal de um agendamento e cobrado - uma "estrategia" escolhida por
- * negocio (ver CobrancaSinalResolver). Hoje a Asaas na conta do proprio
- * negocio; o Pix com a chave propria do dono, com confirmacao manual, entra
- * como outra implementacao sem o agendamento saber a diferenca.
+ * negocio (ver CobrancaSinalResolver): a Asaas na conta do proprio negocio
+ * (confirmacao automatica) ou o Pix com a chave propria do dono (confirmacao
+ * manual). O agendamento so conhece esta interface.
  */
 public interface CobrancaSinalService {
+
+    /** Identifica o meio; e o que fica gravado no agendamento para ele seguir as regras do meio com que nasceu. */
+    MeioCobranca meio();
 
     /** Este negocio esta configurado para receber o sinal por este meio? */
     boolean atende(Tenant tenant);

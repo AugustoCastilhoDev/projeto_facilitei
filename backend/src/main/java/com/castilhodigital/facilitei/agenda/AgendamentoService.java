@@ -3,6 +3,7 @@ package com.castilhodigital.facilitei.agenda;
 import com.castilhodigital.facilitei.agenda.DisponibilidadeService.HorarioDisponivel;
 import com.castilhodigital.facilitei.agenda.sinal.CobrancaSinal;
 import com.castilhodigital.facilitei.agenda.sinal.CobrancaSinalResolver;
+import com.castilhodigital.facilitei.agenda.sinal.CobrancaSinalService;
 import com.castilhodigital.facilitei.agenda.sinal.SolicitacaoCobranca;
 import com.castilhodigital.facilitei.catalog.ServiceOffering;
 import com.castilhodigital.facilitei.common.PostgresErros;
@@ -94,8 +95,10 @@ public class AgendamentoService {
 
         if (agendamento.getValorSinal().signum() > 0) {
             // falhar aqui (negocio sem forma de receber, CPF invalido) e barato: ainda nao seguramos o horario
-            cobrancaSinalResolver.exigir(tenant).validar(new SolicitacaoCobranca(
+            CobrancaSinalService meioDeCobranca = cobrancaSinalResolver.exigir(tenant);
+            meioDeCobranca.validar(new SolicitacaoCobranca(
                     null, pedido.clienteNome(), telefone, pedido.clienteCpfCnpj(), agendamento.getValorSinal()));
+            agendamento.setMeioCobranca(meioDeCobranca.meio());
             agendamento.setStatus(AgendamentoStatus.AGUARDANDO_PAGAMENTO);
             agendamento.setExpiraEm(agora.plus(PRAZO_PAGAMENTO_AUTOMATICO));
         } else {

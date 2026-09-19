@@ -1,5 +1,6 @@
 package com.castilhodigital.facilitei.agenda;
 
+import com.castilhodigital.facilitei.agenda.sinal.MeioCobranca;
 import com.castilhodigital.facilitei.tenant.Tenant;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -21,6 +22,8 @@ public record AgendamentoView(
         Long tenantId,
         String tenantSlug,
         String tenantNome,
+        /** WhatsApp do dono do negocio (55 + DDD + numero); nulo se ainda nao cadastrou. */
+        String telefoneDono,
         ZoneId fuso,
         Long profissionalId,
         String profissionalNome,
@@ -33,9 +36,11 @@ public record AgendamentoView(
         BigDecimal valorTotal,
         BigDecimal valorSinal,
         Instant expiraEm,
+        MeioCobranca meioCobranca,
         String cobrancaExternaId,
         String pixPayload,
         Instant sinalConfirmadoEm,
+        Instant pagamentoInformadoEm,
         List<Servico> servicos
 ) {
 
@@ -50,6 +55,7 @@ public record AgendamentoView(
                 tenant.getId(),
                 tenant.getSlug(),
                 tenant.getNome(),
+                tenant.getTelefoneDono(),
                 ZoneId.of(tenant.getFusoHorario()),
                 agendamento.getProfissional().getId(),
                 agendamento.getProfissional().getNome(),
@@ -62,9 +68,11 @@ public record AgendamentoView(
                 agendamento.getValorTotal(),
                 agendamento.getValorSinal(),
                 agendamento.getExpiraEm(),
+                agendamento.getMeioCobranca(),
                 agendamento.getAsaasPaymentId(),
                 agendamento.getPixPayload(),
                 agendamento.getSinalConfirmadoEm(),
+                agendamento.getPagamentoInformadoEm(),
                 agendamento.getServicos().stream()
                         .map(servico -> new Servico(servico.getNome(), servico.getDuracaoMin(), servico.getPreco()))
                         .toList());

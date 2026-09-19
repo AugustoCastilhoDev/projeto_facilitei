@@ -38,7 +38,18 @@ public record RegistrarTenantRequest(
         String cpfCnpj,
 
         @NotNull(message = "Plano e obrigatorio.")
-        Plano plano
+        Plano plano,
+
+        /** WhatsApp do dono, opcional no cadastro (pode ser informado depois, em Recebimento): e para onde vao os pedidos de confirmacao do Pix. */
+        @Size(max = 30, message = "Telefone longo demais.")
+        String telefoneDono
 
 ) {
+
+    /** Cadastro sem o WhatsApp do dono. */
+    public RegistrarTenantRequest(String nomeNegocio, String slug, LocalTime horarioAbertura, LocalTime horarioFechamento,
+                                  String emailAdmin, String senhaAdmin, String cpfCnpj, Plano plano) {
+        this(nomeNegocio, slug, horarioAbertura, horarioFechamento, emailAdmin, senhaAdmin, cpfCnpj, plano, null);
+    }
+
 }
