@@ -239,8 +239,25 @@ cd backend && mvn test
 cd frontend && ng test --watch=false
 ```
 
-138 testes no backend e 14 suítes no frontend, cobrindo desde regras de negócio isoladas (cálculo de sinal, conflito de horário por profissional, expiração, rate limiting, criptografia de credenciais) até os controllers REST, a integração real com o sandbox da Asaas, o envio de WhatsApp via MyZap, o relatório básico, a cobrança da assinatura SaaS e a observabilidade (correlation id, tratamento de erro genérico).
+216 testes no backend e 25 arquivos de teste no frontend, cobrindo desde regras de negócio isoladas (cálculo de sinal, conflito de horário por profissional, expiração, rate limiting, criptografia de credenciais) até os controllers REST, a integração real com o sandbox da Asaas, o envio de WhatsApp via MyZap, o relatório básico, a cobrança da assinatura SaaS e a observabilidade (correlation id, tratamento de erro genérico).
 
-O GitHub Actions (`.github/workflows/ci.yml`) roda exatamente esses mesmos comandos — `mvn test` + `mvn package` no backend, `ng test` + `ng build` no frontend — a cada push e pull request para a `main`. Nenhum teste depende de banco de dados real (tudo via `@WebMvcTest`/Mockito ou testes puros de unidade), então esses dois jobs não precisam subir um Postgres.
+O GitHub Actions (`.github/workflows/ci.yml`) roda exatamente esses mesmos comandos — `mvn test` + `mvn package` no backend, `ng test` + `ng build` no frontend — a cada push e pull request para a `main`.
+
+**Testes de integração com Postgres real.** A maior parte da suíte usa `@WebMvcTest`/Mockito, que não pega problema de constraint, JPQL nem de transação (foi assim que passaram despercebidos, por exemplo, os `LazyInitializationException` e o bug de um slot liberado que não podia ser reservado de novo). Por isso existem também testes `*IntegrationTest`, que estendem `PostgresIntegrationTest` e sobem a aplicação inteira — Flyway, Hibernate com `ddl-auto: validate` e repositórios reais — contra um Postgres 17 descartável via [Testcontainers](https://testcontainers.com). **Exigem o Docker rodando** (o runner `ubuntu-latest` do GitHub Actions já tem, sem mudar o workflow). O container é um só por execução da suíte e as tabelas são limpas antes de cada teste. Para um caso novo, estenda `PostgresIntegrationTest` e use `@MockitoBean` só nas integrações externas (gateway de pagamento, WhatsApp).
+
+## Produção (perfil `prod`)
+
+`SPRING_PROFILES_ACTIVE=prod` carrega o `application-prod.yml`, que **não tem valor default para nenhum segredo**: sem a variável de ambiente a aplicação nem sobe. Além disso, `ConfiguracaoProducaoValidator` recusa segredos curtos ou que ainda sejam os valores de desenvolvimento deste repositório.
+
+| Variável | Regra |
+|---|---|
+| `JWT_SECRET` | mínimo 32 caracteres (ex.: `openssl rand -base64 48`) |
+| `CREDENTIALS_ENCRYPTION_KEY` | mínimo 32 caracteres; trocá-la invalida as chaves Asaas já gravadas |
+| `CREDENTIALS_ENCRYPTION_SALT` | hexadecimal, tamanho par, mínimo 16 caracteres (ex.: `openssl rand -hex 8`) |
+| `NOTIFICATION_PROVIDER` | `myzap`; `console` é recusado (só logaria o código OTP) |
+| `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` | conexão com o Postgres |
+| `MYZAP_API_KEY`, `ASAAS_API_KEY`, `ASAAS_SAAS_WEBHOOK_TOKEN`, `SENTRY_DSN` | integrações |
+
+O perfil também liga logs JSON (ECS), reduz o log do pacote da aplicação para `INFO` (o `DEBUG` registra telefone e nome de cliente final), expõe só `/actuator/health` e configura `server.forward-headers-strategy: native`. Isso último é o que faz o rate limit de login/OTP valer por IP real do usuário atrás do proxy reverso (Caddy/Nginx) — sem isso o IP visto seria sempre o do proxy e cinco senhas erradas de qualquer pessoa bloqueariam o login de todos. O Tomcat só confia em `X-Forwarded-For` vindo de rede privada/loopback, então **o backend nunca deve ser publicado direto na internet: só o proxy**.
 
 Além desses, há uma suíte de testes end-to-end (Playwright) em [`e2e/`](e2e/README.md), que dirige a UI de verdade num navegador real: cadastro do negócio → login → criação de serviço → geração de horários → agendamento público, cobrindo tanto o fluxo sem sinal (confirmação imediata) quanto o fluxo com sinal (cobrança Pix real na sandbox da Asaas). Um terceiro job do CI (`e2e`) roda essa suíte a cada push/PR, com Postgres como service container e o backend real em background — o teste "com sinal" pula sozinho nesse ambiente (a chave sandbox da Asaas só existe localmente, git-ignorada), então só os fluxos sem cobrança Pix real são verificados lá; ver o README da pasta para rodar a suíte completa localmente.

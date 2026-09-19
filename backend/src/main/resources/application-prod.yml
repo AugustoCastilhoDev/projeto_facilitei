@@ -1,0 +1,58 @@
+# Perfil de producao (SPRING_PROFILES_ACTIVE=prod). Sobrescreve application.yml.
+#
+# Regra deste arquivo: NENHUM segredo tem valor default. Sem a variavel de
+# ambiente correspondente a aplicacao nem sobe ("Could not resolve
+# placeholder") - melhor falhar no deploy do que rodar com o segredo de
+# desenvolvimento que esta no repositorio. Alem disso,
+# common.ConfiguracaoProducaoValidator recusa segredos curtos demais ou que
+# ainda sejam os valores de desenvolvimento.
+
+server:
+  # O backend fica atras de um proxy reverso (Caddy/Nginx) na mesma rede
+  # Docker. Sem isso, request.getRemoteAddr() e sempre o IP do proxy, e o rate
+  # limit de login/OTP (por IP) passaria a bloquear TODOS os usuarios juntos.
+  # "native" delega ao Tomcat (RemoteIpValve), que so confia em X-Forwarded-For
+  # vindo de proxies internos (rede privada/loopback) - um cliente externo que
+  # falasse direto com o backend nao consegue forjar o proprio IP.
+  # Por isso o backend NUNCA deve ser publicado direto na internet, so o proxy.
+  forward-headers-strategy: native
+
+spring:
+  jpa:
+    properties:
+      hibernate:
+        format_sql: false
+
+facilitei:
+  jwt:
+    secret: ${JWT_SECRET}
+
+  notification:
+    # "console" so loga - em producao isso vazaria o codigo OTP nos logs e
+    # ninguem receberia mensagem nenhuma. Tem que ser escolhido de proposito.
+    provider: ${NOTIFICATION_PROVIDER}
+
+  security:
+    credentials-encryption-key: ${CREDENTIALS_ENCRYPTION_KEY}
+    credentials-encryption-salt: ${CREDENTIALS_ENCRYPTION_SALT}
+
+  sentry:
+    environment: ${SENTRY_ENVIRONMENT:prod}
+
+logging:
+  level:
+    # DEBUG do pacote da aplicacao registra telefone e nome de cliente final.
+    com.castilhodigital.facilitei: INFO
+  structured:
+    format:
+      # JSON (ECS) para um agregador de logs; substitui logging.pattern.console.
+      console: ecs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

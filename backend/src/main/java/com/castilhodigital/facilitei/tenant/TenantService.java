@@ -4,6 +4,7 @@ import com.castilhodigital.facilitei.billing.AssinaturaStatus;
 import com.castilhodigital.facilitei.billing.Plano;
 import com.castilhodigital.facilitei.common.exception.EntidadeNaoEncontradaException;
 import com.castilhodigital.facilitei.common.exception.RegraDeNegocioException;
+import com.castilhodigital.facilitei.common.validation.CpfCnpjUtils;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.UUID;
@@ -29,7 +30,7 @@ public class TenantService {
         Tenant tenant = new Tenant();
         tenant.setNome(nome);
         tenant.setSlug(slug);
-        tenant.setCpfCnpj(cpfCnpj);
+        tenant.setCpfCnpj(CpfCnpjUtils.somenteDigitos(cpfCnpj));
         tenant.setPlano(plano);
         tenant.setAssinaturaStatus(AssinaturaStatus.TRIAL);
         tenant.setTrialAte(LocalDate.now(ZONE_ID).plusDays(DIAS_DE_TRIAL));
