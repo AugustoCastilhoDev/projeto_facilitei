@@ -107,4 +107,20 @@ public class Tenant extends BaseEntity {
     @Column(name = "visivel_no_diretorio", nullable = false)
     private boolean visivelNoDiretorio = false;
 
+    /** Fuso IANA do negocio (ex.: America/Manaus). Os horarios de trabalho sao "hora de parede" neste fuso. */
+    @Column(name = "fuso_horario", nullable = false, length = 50)
+    private String fusoHorario = "America/Sao_Paulo";
+
+    /** Passo da grade de horarios oferecidos ao cliente (minutos): 30 gera 09:00, 09:30, 10:00... */
+    @Column(name = "intervalo_agenda_min", nullable = false)
+    private int intervaloAgendaMin = 30;
+
+    /** Antecedencia minima para marcar (minutos): impede reservar "daqui a 5 minutos". */
+    @Column(name = "antecedencia_minima_min", nullable = false)
+    private int antecedenciaMinimaMin = 60;
+
+    /** Ate quantos dias a frente a agenda aceita marcacao. */
+    @Column(name = "horizonte_dias", nullable = false)
+    private int horizonteDias = 60;
+
 }
