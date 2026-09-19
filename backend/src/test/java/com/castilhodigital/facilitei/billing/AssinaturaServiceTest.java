@@ -1,16 +1,16 @@
 package com.castilhodigital.facilitei.billing;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.castilhodigital.facilitei.payment.PaymentGatewayException;
 import com.castilhodigital.facilitei.payment.PaymentGatewayService;
-import com.castilhodigital.facilitei.payment.PixChargeRequest;
-import com.castilhodigital.facilitei.payment.PixChargeResult;
 import com.castilhodigital.facilitei.payment.asaas.AsaasProperties;
 import com.castilhodigital.facilitei.tenant.Tenant;
 import com.castilhodigital.facilitei.tenant.TenantRepository;
@@ -34,6 +34,9 @@ class AssinaturaServiceTest {
     private FaturaRepository faturaRepository;
 
     @Mock
+    private FaturaGeracaoService faturaGeracaoService;
+
+    @Mock
     private PaymentGatewayService paymentGatewayService;
 
     private AssinaturaService assinaturaService;
@@ -41,7 +44,8 @@ class AssinaturaServiceTest {
     @BeforeEach
     void setUp() {
         AsaasProperties asaasProperties = new AsaasProperties("https://api-sandbox.asaas.com/v3", "chave-plataforma", "webhook-token");
-        assinaturaService = new AssinaturaService(tenantRepository, faturaRepository, paymentGatewayService, asaasProperties);
+        assinaturaService = new AssinaturaService(
+                tenantRepository, faturaRepository, faturaGeracaoService, paymentGatewayService, asaasProperties);
     }
 
     private Tenant tenant(Long id, AssinaturaStatus status, Plano plano, String cpfCnpj) {
@@ -55,61 +59,34 @@ class AssinaturaServiceTest {
     }
 
     @Test
-    void gerarFaturasDoDiaGeraPrimeiraFaturaParaTenantComTrialVencido() {
-        Tenant tenant = tenant(1L, AssinaturaStatus.TRIAL, Plano.BASICO, "52998224725");
+    void gerarFaturasDoDiaDelegaCadaTenantElegivelParaAGeracaoIndividual() {
+        Tenant emTrial = tenant(1L, AssinaturaStatus.TRIAL, Plano.BASICO, "52998224725");
+        Tenant cicloVencido = tenant(2L, AssinaturaStatus.ATIVA, Plano.PROFISSIONAL, "52998224725");
         when(tenantRepository.findByAssinaturaStatusAndTrialAteLessThan(eq(AssinaturaStatus.TRIAL), any()))
-                .thenReturn(List.of(tenant));
+                .thenReturn(List.of(emTrial));
         when(tenantRepository.findByAssinaturaStatusAndProximaCobrancaEmIsNotNullAndProximaCobrancaEmLessThanEqual(
-                eq(AssinaturaStatus.ATIVA), any())).thenReturn(List.of());
-        when(faturaRepository.existsByTenantIdAndStatus(1L, FaturaStatus.PENDENTE)).thenReturn(false);
-        when(faturaRepository.save(any(Fatura.class))).thenAnswer(invocation -> {
-            Fatura fatura = invocation.getArgument(0);
-            ReflectionTestUtils.setField(fatura, "id", 10L);
-            return fatura;
-        });
-        when(paymentGatewayService.criarCobrancaPix(eq("chave-plataforma"), any(PixChargeRequest.class)))
-                .thenReturn(new PixChargeResult("pay_assinatura_1", "payload-pix", "base64img"));
+                eq(AssinaturaStatus.ATIVA), any())).thenReturn(List.of(cicloVencido));
 
         assinaturaService.gerarFaturasDoDia();
 
-        verify(faturaRepository).save(any(Fatura.class));
-        verify(paymentGatewayService).criarCobrancaPix(eq("chave-plataforma"),
-                argThatValor(new java.math.BigDecimal("49.00")));
-        assertThat(tenant.getAssinaturaStatus()).isEqualTo(AssinaturaStatus.INADIMPLENTE);
-    }
-
-    private PixChargeRequest argThatValor(java.math.BigDecimal valorEsperado) {
-        return org.mockito.ArgumentMatchers.argThat(req -> req.valor().compareTo(valorEsperado) == 0);
+        verify(faturaGeracaoService).gerarSeNecessario(eq(1L), any(LocalDate.class));
+        verify(faturaGeracaoService).gerarSeNecessario(eq(2L), any(LocalDate.class));
     }
 
     @Test
-    void gerarFaturasDoDiaNaoDuplicaSeJaHaFaturaPendente() {
-        Tenant tenant = tenant(1L, AssinaturaStatus.TRIAL, Plano.BASICO, "52998224725");
+    void gerarFaturasDoDiaSegueParaOsDemaisQuandoUmTenantFalha() {
+        Tenant quebrado = tenant(1L, AssinaturaStatus.TRIAL, Plano.BASICO, "00000000000");
+        Tenant saudavel = tenant(2L, AssinaturaStatus.TRIAL, Plano.BASICO, "52998224725");
         when(tenantRepository.findByAssinaturaStatusAndTrialAteLessThan(eq(AssinaturaStatus.TRIAL), any()))
-                .thenReturn(List.of(tenant));
+                .thenReturn(List.of(quebrado, saudavel));
         when(tenantRepository.findByAssinaturaStatusAndProximaCobrancaEmIsNotNullAndProximaCobrancaEmLessThanEqual(
                 eq(AssinaturaStatus.ATIVA), any())).thenReturn(List.of());
-        when(faturaRepository.existsByTenantIdAndStatus(1L, FaturaStatus.PENDENTE)).thenReturn(true);
+        doThrow(new PaymentGatewayException("rejeitado", null))
+                .when(faturaGeracaoService).gerarSeNecessario(eq(1L), any(LocalDate.class));
 
-        assinaturaService.gerarFaturasDoDia();
+        assertThatCode(() -> assinaturaService.gerarFaturasDoDia()).doesNotThrowAnyException();
 
-        verify(faturaRepository, never()).save(any());
-        verify(paymentGatewayService, never()).criarCobrancaPix(any(), any());
-    }
-
-    @Test
-    void gerarFaturasDoDiaPulaTenantSemCpfCnpj() {
-        Tenant tenant = tenant(1L, AssinaturaStatus.TRIAL, Plano.BASICO, null);
-        when(tenantRepository.findByAssinaturaStatusAndTrialAteLessThan(eq(AssinaturaStatus.TRIAL), any()))
-                .thenReturn(List.of(tenant));
-        when(tenantRepository.findByAssinaturaStatusAndProximaCobrancaEmIsNotNullAndProximaCobrancaEmLessThanEqual(
-                eq(AssinaturaStatus.ATIVA), any())).thenReturn(List.of());
-        when(faturaRepository.existsByTenantIdAndStatus(1L, FaturaStatus.PENDENTE)).thenReturn(false);
-
-        assinaturaService.gerarFaturasDoDia();
-
-        verify(faturaRepository, never()).save(any());
-        assertThat(tenant.getAssinaturaStatus()).isEqualTo(AssinaturaStatus.TRIAL);
+        verify(faturaGeracaoService).gerarSeNecessario(eq(2L), any(LocalDate.class));
     }
 
     @Test

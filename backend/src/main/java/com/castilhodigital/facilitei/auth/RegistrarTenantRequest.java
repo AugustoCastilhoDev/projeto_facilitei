@@ -1,6 +1,7 @@
 package com.castilhodigital.facilitei.auth;
 
 import com.castilhodigital.facilitei.billing.Plano;
+import com.castilhodigital.facilitei.common.validation.CpfCnpj;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -33,6 +34,7 @@ public record RegistrarTenantRequest(
         String senhaAdmin,
 
         @NotBlank(message = "CPF/CNPJ e obrigatorio.")
+        @CpfCnpj
         String cpfCnpj,
 
         @NotNull(message = "Plano e obrigatorio.")
