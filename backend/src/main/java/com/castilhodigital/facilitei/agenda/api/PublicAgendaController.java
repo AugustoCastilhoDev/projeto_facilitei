@@ -9,6 +9,7 @@ import com.castilhodigital.facilitei.agenda.DisponibilidadeService.ProfissionalR
 import com.castilhodigital.facilitei.agenda.NovoAgendamento;
 import com.castilhodigital.facilitei.tenant.Tenant;
 import com.castilhodigital.facilitei.tenant.TenantService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.time.Clock;
 import java.time.Instant;
@@ -44,6 +45,7 @@ public class PublicAgendaController {
     private final DisponibilidadeService disponibilidadeService;
     private final AgendamentoCheckoutService checkoutService;
     private final AgendamentoPagamentoService pagamentoService;
+    private final LimitesDaAgendaPublica limites;
     private final Clock clock;
 
     @GetMapping("/profissionais")
@@ -68,7 +70,9 @@ public class PublicAgendaController {
 
     @PostMapping("/agendamentos")
     public ResponseEntity<AgendamentoPublicoResponse> criar(@PathVariable String slug,
-                                                             @Valid @RequestBody CriarAgendamentoRequest request) {
+                                                             @Valid @RequestBody CriarAgendamentoRequest request,
+                                                             HttpServletRequest servletRequest) {
+        limites.contarReserva(servletRequest.getRemoteAddr());
         Tenant tenant = tenantService.buscarPorSlug(slug);
         CheckoutAgendamento checkout = checkoutService.iniciar(new NovoAgendamento(
                 tenant.getId(), request.servicoIds(), request.profissionalId(), request.inicio().toInstant(),
@@ -88,7 +92,9 @@ public class PublicAgendaController {
      * de conferir. Repetir a chamada nao gera outro pedido. 409 se a reserva ja expirou e o horario foi ocupado.
      */
     @PostMapping("/agendamentos/{codigo}/informar-pagamento")
-    public AgendamentoPublicoResponse informarPagamento(@PathVariable String slug, @PathVariable UUID codigo) {
+    public AgendamentoPublicoResponse informarPagamento(@PathVariable String slug, @PathVariable UUID codigo,
+                                                         HttpServletRequest servletRequest) {
+        limites.contarAvisoDePagamento(servletRequest.getRemoteAddr());
         return AgendamentoPublicoResponse.de(new CheckoutAgendamento(
                 pagamentoService.informarPagamentoDoCliente(slug, codigo, Instant.now(clock)), null));
     }

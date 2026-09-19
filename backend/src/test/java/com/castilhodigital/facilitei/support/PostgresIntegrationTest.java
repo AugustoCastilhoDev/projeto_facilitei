@@ -36,6 +36,9 @@ public abstract class PostgresIntegrationTest {
         registry.add("spring.datasource.password", POSTGRES::getPassword);
         // jobs agendados com o relogio real poderiam mexer nos dados de um teste no meio dele
         registry.add("facilitei.scheduling.enabled", () -> "false");
+        // os testes fazem dezenas de reservas do mesmo IP (127.0.0.1); o limite por IP tem teste proprio
+        registry.add("facilitei.agenda.limite-reservas-por-ip", () -> "100000");
+        registry.add("facilitei.agenda.limite-avisos-de-pagamento-por-ip", () -> "100000");
     }
 
     @Autowired

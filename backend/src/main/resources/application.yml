@@ -67,6 +67,13 @@ facilitei:
     # painel). So e usada quando notification.provider=myzap.
     api-key: ${MYZAP_API_KEY:}
 
+  agenda:
+    # Limite por IP nas rotas publicas que mudam estado (reservar e "ja paguei"), numa janela de 10 minutos.
+    # Sobra para quem marca horarios de verdade; existe para quem tenta esgotar a agenda de um negocio ou
+    # encher o WhatsApp do dono trocando o telefone digitado.
+    limite-reservas-por-ip: ${AGENDA_LIMITE_RESERVAS_POR_IP:10}
+    limite-avisos-de-pagamento-por-ip: ${AGENDA_LIMITE_AVISOS_POR_IP:10}
+
   security:
     # Cifra em repouso a chave Asaas de cada tenant (ver common.crypto).
     # Em producao AMBOS devem vir de variavel de ambiente/secret manager -

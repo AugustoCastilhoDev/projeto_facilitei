@@ -120,7 +120,7 @@ O segredo do link é a autorização. É aleatório (256 bits), **diferente do `
 - **Webhook da Asaas responde `200` para pagamento desconhecido.** Na conta Asaas do próprio negócio entram cobranças que não são do Facilitei; um erro faria a Asaas pausar a fila do webhook.
 - **Quem muda o estado trava a linha.** Painel, link do dono e webhook buscam o agendamento com `SELECT … FOR UPDATE` (`findWithLock…`); o job de expiração usa `SKIP LOCKED`. Sem isso, "confirmar" e "expirar" ao mesmo tempo se sobrescreviam (confirmado com o horário já entregue a outra pessoa). Testado: o job pula a reserva que está sendo decidida.
 - **O dono pode confirmar depois de o prazo acabar.** O Pix caiu na conta dele; se o horário ainda está livre a reserva volta, senão a constraint do banco recusa (`409`) e a reserva de quem ficou com o horário fica intacta. O mesmo vale para o cliente que toca "Já paguei" atrasado.
-- **Um só "Já paguei" gera um só pedido ao dono.** Repetir a chamada não troca o link nem manda outra mensagem.
+- **Um só "Já paguei" gera um só pedido ao dono.** Repetir a chamada não troca o link nem manda outra mensagem. Além disso, reservar e avisar pagamento têm limite por IP (`429`): sem ele, quem varia o telefone digitado esgotaria a agenda de um negócio ou encheria o WhatsApp do dono - o teto de 2 reservas em espera por telefone não segura isso.
 - **`Clock` injetável:** controllers e jobs recebem o "agora" por dependência, então os testes fixam a data.
 
 ## Limitações conhecidas (para as próximas fases)
@@ -129,4 +129,4 @@ O segredo do link é a autorização. É aleatório (256 bits), **diferente do `
 - O Pix estático não traz de volta o valor pago: se o cliente pagar outra quantia, quem percebe é o dono no extrato.
 - O turno de trabalho não atravessa a meia-noite.
 - Cancelar/remarcar pelo próprio cliente ainda não existe (fase 3).
-- O endpoint público de reserva não tem rate limit por IP; o teto é de 2 reservas em espera por telefone e o prazo curto (15 min) de cada uma.
+- O limite por IP (reservas e "já paguei") é em memória, por instância: com mais de uma instância do backend cada uma conta o seu (o mesmo limite do login, ver `LoginRateLimiter`). Atrás de CGNAT (operadoras móveis) várias pessoas dividem um IP; os tetos padrão (10 por 10 min) sobram para uso real, e são ajustáveis por `AGENDA_LIMITE_RESERVAS_POR_IP` / `AGENDA_LIMITE_AVISOS_POR_IP`.
