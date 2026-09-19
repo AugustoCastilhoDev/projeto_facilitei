@@ -2,13 +2,15 @@ package com.castilhodigital.facilitei.billing;
 
 import com.castilhodigital.facilitei.common.exception.EntidadeNaoEncontradaException;
 import com.castilhodigital.facilitei.payment.PaymentGatewayService;
-import com.castilhodigital.facilitei.payment.PixChargeRequest;
 import com.castilhodigital.facilitei.payment.PixChargeResult;
 import com.castilhodigital.facilitei.payment.asaas.AsaasProperties;
 import com.castilhodigital.facilitei.tenant.Tenant;
 import com.castilhodigital.facilitei.tenant.TenantRepository;
+import io.sentry.Sentry;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,29 +28,39 @@ import org.springframework.stereotype.Service;
 public class AssinaturaService {
 
     private static final ZoneId ZONE_ID = ZoneId.of("America/Sao_Paulo");
-    private static final int PRAZO_VENCIMENTO_DIAS = 3;
 
     private final TenantRepository tenantRepository;
     private final FaturaRepository faturaRepository;
+    private final FaturaGeracaoService faturaGeracaoService;
     private final PaymentGatewayService paymentGatewayService;
     private final AsaasProperties asaasProperties;
 
     /**
      * Gera a fatura (+ cobranca Pix real) para tenants cujo trial acabou de
-     * vencer ou cujo ciclo mensal chegou, desde que nao haja uma fatura
-     * PENDENTE ja aberta (evita duplicar cobranca se o scheduler rodar mais
-     * de uma vez no mesmo dia por qualquer motivo).
+     * vencer ou cujo ciclo mensal chegou.
+     *
+     * Deliberadamente SEM @Transactional: cada tenant e faturado na sua
+     * propria transacao (FaturaGeracaoService), e uma falha de um (gateway
+     * rejeitando o CPF/CNPJ, indisponibilidade momentanea) e registrada e
+     * pulada - nao pode impedir a cobranca dos demais nem deixar cobrancas
+     * orfas na Asaas por causa de um rollback do lote inteiro. O tenant que
+     * falhou continua elegivel e e tentado de novo na proxima execucao.
      */
-    @Transactional
     public void gerarFaturasDoDia() {
         LocalDate hoje = LocalDate.now(ZONE_ID);
 
-        for (Tenant tenant : tenantRepository.findByAssinaturaStatusAndTrialAteLessThan(AssinaturaStatus.TRIAL, hoje)) {
-            gerarFaturaSeNecessario(tenant, hoje);
-        }
-        for (Tenant tenant : tenantRepository
-                .findByAssinaturaStatusAndProximaCobrancaEmIsNotNullAndProximaCobrancaEmLessThanEqual(AssinaturaStatus.ATIVA, hoje)) {
-            gerarFaturaSeNecessario(tenant, hoje);
+        List<Tenant> elegiveis = new ArrayList<>(
+                tenantRepository.findByAssinaturaStatusAndTrialAteLessThan(AssinaturaStatus.TRIAL, hoje));
+        elegiveis.addAll(tenantRepository
+                .findByAssinaturaStatusAndProximaCobrancaEmIsNotNullAndProximaCobrancaEmLessThanEqual(AssinaturaStatus.ATIVA, hoje));
+
+        for (Tenant tenant : elegiveis) {
+            try {
+                faturaGeracaoService.gerarSeNecessario(tenant.getId(), hoje);
+            } catch (RuntimeException ex) {
+                log.error("Falha ao gerar a fatura da assinatura do tenant '{}' - segue para os demais.", tenant.getSlug(), ex);
+                Sentry.captureException(ex);
+            }
         }
     }
 
@@ -59,31 +71,6 @@ public class AssinaturaService {
         for (Fatura fatura : faturaRepository.findByStatusAndVencimentoLessThan(FaturaStatus.PENDENTE, hoje)) {
             fatura.setStatus(FaturaStatus.VENCIDA);
         }
-    }
-
-    private void gerarFaturaSeNecessario(Tenant tenant, LocalDate hoje) {
-        if (faturaRepository.existsByTenantIdAndStatus(tenant.getId(), FaturaStatus.PENDENTE)) {
-            return;
-        }
-        if (tenant.getCpfCnpj() == null) {
-            log.warn("Tenant '{}' sem cpfCnpj cadastrado - pulando geracao de fatura da assinatura.", tenant.getSlug());
-            return;
-        }
-
-        Fatura fatura = new Fatura();
-        fatura.setTenant(tenant);
-        fatura.setPlano(tenant.getPlano());
-        fatura.setValor(tenant.getPlano().getPrecoMensal());
-        fatura.setStatus(FaturaStatus.PENDENTE);
-        fatura.setCompetencia(hoje);
-        fatura.setVencimento(hoje.plusDays(PRAZO_VENCIMENTO_DIAS));
-        fatura = faturaRepository.save(fatura);
-
-        PixChargeResult resultado = paymentGatewayService.criarCobrancaPix(asaasProperties.apiKey(), new PixChargeRequest(
-                tenant.getNome(), null, tenant.getCpfCnpj(), fatura.getValor(), "assinatura-" + fatura.getId()));
-        fatura.setAsaasPaymentId(resultado.paymentId());
-
-        tenant.setAssinaturaStatus(AssinaturaStatus.INADIMPLENTE);
     }
 
     @Transactional

@@ -2,6 +2,7 @@ package com.castilhodigital.facilitei.common;
 
 import com.castilhodigital.facilitei.common.exception.AcessoNegadoException;
 import com.castilhodigital.facilitei.common.exception.CodigoVerificacaoInvalidoException;
+import com.castilhodigital.facilitei.common.exception.ConflitoDeHorarioException;
 import com.castilhodigital.facilitei.common.exception.CredenciaisInvalidasException;
 import com.castilhodigital.facilitei.common.exception.EntidadeNaoEncontradaException;
 import com.castilhodigital.facilitei.common.exception.EnvioNotificacaoFalhouException;
@@ -50,6 +51,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(RegraDeNegocioException.class)
     public ProblemDetail handleRegraDeNegocio(RegraDeNegocioException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    @ExceptionHandler(ConflitoDeHorarioException.class)
+    public ProblemDetail handleConflitoDeHorario(ConflitoDeHorarioException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     @ExceptionHandler(CredenciaisInvalidasException.class)

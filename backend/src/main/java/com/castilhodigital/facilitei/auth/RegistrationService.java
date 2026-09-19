@@ -34,6 +34,10 @@ public class RegistrationService {
 
         User admin = userService.registrarAdmin(tenant, request.emailAdmin(), request.senhaAdmin());
 
+        if (request.telefoneDono() != null && !request.telefoneDono().isBlank()) {
+            tenantService.atualizarTelefoneDono(tenant.getId(), request.telefoneDono());
+        }
+
         profissionalService.criar(tenant, NOME_PROFISSIONAL_PADRAO,
                 request.horarioAbertura(), request.horarioFechamento(), List.of());
 

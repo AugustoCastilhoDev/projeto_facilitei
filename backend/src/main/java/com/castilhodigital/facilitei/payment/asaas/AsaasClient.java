@@ -62,6 +62,19 @@ class AsaasClient {
         }
     }
 
+    /** DELETE /payments/{id}: a Asaas so remove cobranca ainda nao paga; uma ja paga responde 400. */
+    void cancelarCobranca(String apiKey, String paymentId) {
+        try {
+            asaasRestClient.delete()
+                    .uri("/payments/{id}", paymentId)
+                    .header(HEADER_ACCESS_TOKEN, apiKey)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientException ex) {
+            throw new PaymentGatewayException("Falha ao cancelar cobranca no Asaas: " + detalhes(ex), ex);
+        }
+    }
+
     /**
      * RestClientResponseException (HTTP 4xx/5xx) tem corpo de resposta para
      * depurar o motivo exato; falhas de rede/timeout (ResourceAccessException)

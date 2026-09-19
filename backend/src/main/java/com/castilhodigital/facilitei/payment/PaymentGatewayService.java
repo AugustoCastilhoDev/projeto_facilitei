@@ -23,4 +23,11 @@ public interface PaymentGatewayService {
      */
     PixChargeResult buscarQrCodePix(String apiKey, String paymentId);
 
+    /**
+     * Cancela uma cobranca ainda nao paga, para o cliente nao conseguir paga-la depois de o horario ter sido
+     * liberado (sem isso, um Pix pago apos a expiracao vira dinheiro recebido por um horario que ja e de outro).
+     * Falha se a cobranca ja foi paga - quem chama trata como melhor esforco.
+     */
+    void cancelarCobranca(String apiKey, String paymentId);
+
 }

@@ -75,6 +75,21 @@ class AuthControllerTest {
     }
 
     @Test
+    void registrarComCpfCnpjInvalidoRetorna400() throws Exception {
+        // digito verificador errado: passaria no @NotBlank, mas a Asaas rejeitaria a cobranca da mensalidade depois
+        RegistrarTenantRequest request = new RegistrarTenantRequest(
+                "Barbearia do Ze", "barbearia-do-ze",
+                java.time.LocalTime.of(9, 0), java.time.LocalTime.of(18, 0),
+                "ze@example.com", "senha12345", "52998224726", com.castilhodigital.facilitei.billing.Plano.BASICO);
+
+        mockMvc.perform(post("/api/auth/registrar")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.erros.cpfCnpj").value("CPF/CNPJ invalido."));
+    }
+
+    @Test
     void loginComCredenciaisValidasRetorna200ComToken() throws Exception {
         LoginRequest request = new LoginRequest("ze@example.com", "senha12345");
         when(loginService.autenticar("ze@example.com", "senha12345"))

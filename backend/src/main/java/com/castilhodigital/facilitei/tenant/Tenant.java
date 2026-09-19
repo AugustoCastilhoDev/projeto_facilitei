@@ -4,6 +4,7 @@ import com.castilhodigital.facilitei.billing.AssinaturaStatus;
 import com.castilhodigital.facilitei.billing.Plano;
 import com.castilhodigital.facilitei.common.BaseEntity;
 import com.castilhodigital.facilitei.common.crypto.EncryptedStringConverter;
+import com.castilhodigital.facilitei.pix.TipoChavePix;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
@@ -106,5 +107,46 @@ public class Tenant extends BaseEntity {
      */
     @Column(name = "visivel_no_diretorio", nullable = false)
     private boolean visivelNoDiretorio = false;
+
+    /** Fuso IANA do negocio (ex.: America/Manaus). Os horarios de trabalho sao "hora de parede" neste fuso. */
+    @Column(name = "fuso_horario", nullable = false, length = 50)
+    private String fusoHorario = "America/Sao_Paulo";
+
+    /** Passo da grade de horarios oferecidos ao cliente (minutos): 30 gera 09:00, 09:30, 10:00... */
+    @Column(name = "intervalo_agenda_min", nullable = false)
+    private int intervaloAgendaMin = 30;
+
+    /** Antecedencia minima para marcar (minutos): impede reservar "daqui a 5 minutos". */
+    @Column(name = "antecedencia_minima_min", nullable = false)
+    private int antecedenciaMinimaMin = 60;
+
+    /** Ate quantos dias a frente a agenda aceita marcacao. */
+    @Column(name = "horizonte_dias", nullable = false)
+    private int horizonteDias = 60;
+
+    /**
+     * WhatsApp do dono (so digitos, com 55): e para onde vao o pedido de confirmacao do Pix e os avisos de
+     * pagamento tardio. Diferente do telefone do cliente e do login do painel.
+     */
+    @Column(name = "telefone_dono", length = 20)
+    private String telefoneDono;
+
+    /**
+     * Chave Pix propria do negocio (alternativa a conta Asaas). Ou os quatro campos pix* estao preenchidos ou
+     * nenhum esta - o banco garante (chk_tenants_pix_completo). Nao e segredo: a chave aparece em todo QR gerado.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "pix_tipo_chave", length = 10)
+    private TipoChavePix pixTipoChave;
+
+    @Column(name = "pix_chave", length = 77)
+    private String pixChave;
+
+    /** Nome e cidade como o BR Code os exige (sem acento, maiusculos); so informativos para o pagador. */
+    @Column(name = "pix_nome_recebedor", length = 25)
+    private String pixNomeRecebedor;
+
+    @Column(name = "pix_cidade_recebedor", length = 15)
+    private String pixCidadeRecebedor;
 
 }
