@@ -2,6 +2,8 @@ package com.castilhodigital.facilitei.agenda;
 
 import com.castilhodigital.facilitei.catalog.ServiceOffering;
 import com.castilhodigital.facilitei.catalog.ServiceOfferingRepository;
+import com.castilhodigital.facilitei.notification.NotificationService;
+import com.castilhodigital.facilitei.payment.PaymentGatewayService;
 import com.castilhodigital.facilitei.professional.Profissional;
 import com.castilhodigital.facilitei.professional.ProfissionalRepository;
 import com.castilhodigital.facilitei.support.PostgresIntegrationTest;
@@ -14,9 +16,20 @@ import java.time.LocalTime;
 import java.util.HashSet;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /** Base dos testes da agenda com Postgres real: monta negocio, profissionais, servicos e agendamentos com poucas linhas. */
 abstract class AgendaIntegrationTest extends PostgresIntegrationTest {
+
+    /**
+     * Os dois dubles vivem na base (nao em cada teste) para todos os testes da agenda compartilharem UM contexto do
+     * Spring - cada combinacao diferente de @MockitoBean sobe a aplicacao de novo (~20s).
+     */
+    @MockitoBean
+    protected NotificationService notificationService;
+
+    @MockitoBean
+    protected PaymentGatewayService paymentGatewayService;
 
     @Autowired
     protected TenantRepository tenantRepository;
@@ -44,12 +57,16 @@ abstract class AgendaIntegrationTest extends PostgresIntegrationTest {
     }
 
     protected ServiceOffering servico(Tenant tenant, String nome, int duracaoMin, String preco) {
+        return servicoComSinal(tenant, nome, duracaoMin, preco, "0.00");
+    }
+
+    protected ServiceOffering servicoComSinal(Tenant tenant, String nome, int duracaoMin, String preco, String sinalPercentual) {
         ServiceOffering servico = new ServiceOffering();
         servico.setTenant(tenant);
         servico.setNome(nome);
         servico.setDuracaoMin(duracaoMin);
         servico.setPreco(new BigDecimal(preco));
-        servico.setSinalPercentual(BigDecimal.ZERO);
+        servico.setSinalPercentual(new BigDecimal(sinalPercentual));
         return serviceOfferingRepository.save(servico);
     }
 

@@ -34,6 +34,8 @@ public abstract class PostgresIntegrationTest {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
+        // jobs agendados com o relogio real poderiam mexer nos dados de um teste no meio dele
+        registry.add("facilitei.scheduling.enabled", () -> "false");
     }
 
     @Autowired

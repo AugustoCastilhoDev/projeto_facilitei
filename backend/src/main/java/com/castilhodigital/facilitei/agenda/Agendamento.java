@@ -2,6 +2,7 @@ package com.castilhodigital.facilitei.agenda;
 
 import com.castilhodigital.facilitei.cliente.Cliente;
 import com.castilhodigital.facilitei.common.BaseEntity;
+import com.castilhodigital.facilitei.common.exception.RegraDeNegocioException;
 import com.castilhodigital.facilitei.professional.Profissional;
 import com.castilhodigital.facilitei.tenant.Tenant;
 import jakarta.persistence.CascadeType;
@@ -108,6 +109,89 @@ public class Agendamento extends BaseEntity {
     public void adicionarServico(AgendamentoServico item) {
         item.setAgendamento(this);
         servicos.add(item);
+    }
+
+    // ---- transicoes de estado: as regras do ciclo de vida moram aqui, nao espalhadas pelos services ----
+
+    /**
+     * O sinal foi pago (webhook do gateway) ou o dono confirmou o recebimento.
+     * Idempotente para quem ja passou dessa etapa: gateways reenviam o mesmo
+     * webhook, e processar de novo nao pode dar erro nem "voltar" o status.
+     */
+    public void confirmarSinal(Instant agora) {
+        if (status == AgendamentoStatus.CONFIRMADO || status == AgendamentoStatus.CONCLUIDO
+                || status == AgendamentoStatus.FALTOU) {
+            return;
+        }
+        if (!status.aguardaSinal()) {
+            throw new RegraDeNegocioException("Este agendamento não está aguardando pagamento.");
+        }
+        status = AgendamentoStatus.CONFIRMADO;
+        sinalConfirmadoEm = agora;
+        expiraEm = null;
+    }
+
+    /**
+     * Pagamento que chegou DEPOIS de o prazo acabar. Ressuscitar a reserva so e
+     * seguro se ninguem tomou o horario nesse meio tempo - e quem decide isso e a
+     * constraint de exclusao do banco quando este estado for gravado (ver
+     * AgendamentoService.confirmarSinalDoGateway), nao uma checagem aqui.
+     */
+    public void reativarPorPagamentoTardio(Instant agora) {
+        if (status != AgendamentoStatus.EXPIRADO) {
+            throw new RegraDeNegocioException("Só um agendamento expirado pode ser reativado por pagamento tardio.");
+        }
+        status = AgendamentoStatus.CONFIRMADO;
+        sinalConfirmadoEm = agora;
+        expiraEm = null;
+    }
+
+    /** Cancelamento feito pelo dono/funcionario; vale enquanto o atendimento ainda nao aconteceu. */
+    public void cancelarPeloNegocio() {
+        if (!status.aguardaSinal() && status != AgendamentoStatus.CONFIRMADO) {
+            throw new RegraDeNegocioException("Este agendamento não pode mais ser cancelado.");
+        }
+        status = AgendamentoStatus.CANCELADO_NEGOCIO;
+        expiraEm = null;
+    }
+
+    public void concluir(Instant agora) {
+        exigirConfirmadoEJaIniciado(agora, "concluído");
+        status = AgendamentoStatus.CONCLUIDO;
+    }
+
+    public void marcarFalta(Instant agora) {
+        exigirConfirmadoEJaIniciado(agora, "marcado como falta");
+        status = AgendamentoStatus.FALTOU;
+    }
+
+    /**
+     * Passa para EXPIRADO se estava esperando e o prazo ja acabou.
+     *
+     * @return true se expirou agora (quem chama publica o evento e avisa o cliente)
+     */
+    public boolean expirarSeVencido(Instant agora) {
+        if (status.aguardaSinal() && expiraEm != null && !expiraEm.isAfter(agora)) {
+            status = AgendamentoStatus.EXPIRADO;
+            return true;
+        }
+        return false;
+    }
+
+    /** A cobranca do sinal nao pode ser criada no gateway: devolve o horario para a agenda na hora, sem esperar o prazo. */
+    public void liberarPorFalhaNaCobranca() {
+        if (status.aguardaSinal()) {
+            status = AgendamentoStatus.EXPIRADO;
+        }
+    }
+
+    private void exigirConfirmadoEJaIniciado(Instant agora, String acao) {
+        if (status != AgendamentoStatus.CONFIRMADO) {
+            throw new RegraDeNegocioException("Só um agendamento confirmado pode ser " + acao + ".");
+        }
+        if (agora.isBefore(inicio)) {
+            throw new RegraDeNegocioException("O atendimento ainda não começou.");
+        }
     }
 
 }

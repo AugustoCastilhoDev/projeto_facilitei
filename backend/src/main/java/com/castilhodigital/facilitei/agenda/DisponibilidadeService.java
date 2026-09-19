@@ -39,7 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DisponibilidadeService {
 
     /** Um horario oferecido ao cliente: quando comeca, quando termina e com qual profissional. */
-    public record HorarioDisponivel(Instant inicio, Instant fim, Long profissionalId) {
+    public record HorarioDisponivel(Instant inicio, Instant fim, Long profissionalId, String profissionalNome) {
     }
 
     private final TenantService tenantService;
@@ -90,7 +90,7 @@ public class DisponibilidadeService {
                     ocupadosPorProfissional.getOrDefault(profissional.getId(), List.of()),
                     duracao, tenant.getIntervaloAgendaMin(), limiteInferior, limiteSuperior);
             for (Instant inicio : inicios) {
-                resultado.putIfAbsent(inicio, new HorarioDisponivel(inicio, inicio.plus(duracao), profissional.getId()));
+                resultado.putIfAbsent(inicio, new HorarioDisponivel(inicio, inicio.plus(duracao), profissional.getId(), profissional.getNome()));
             }
         }
         return new ArrayList<>(resultado.values());
@@ -107,7 +107,7 @@ public class DisponibilidadeService {
         return mapa;
     }
 
-    private List<ServiceOffering> buscarServicosAtivos(Long tenantId, Collection<Long> servicoIds) {
+    List<ServiceOffering> buscarServicosAtivos(Long tenantId, Collection<Long> servicoIds) {
         if (servicoIds == null || servicoIds.isEmpty()) {
             throw new RegraDeNegocioException("Escolha pelo menos um servico.");
         }
@@ -127,19 +127,28 @@ public class DisponibilidadeService {
         Set<Long> idsDosServicos = servicos.stream().map(BaseEntity::getId).collect(Collectors.toSet());
 
         if (profissionalId != null) {
-            Profissional escolhido = profissionalService.buscarPorIdETenant(tenantId, profissionalId);
-            if (!escolhido.isAtivo()) {
-                throw new RegraDeNegocioException("Este profissional nao esta disponivel para agendamento.");
-            }
-            if (!realizaTodos(escolhido, idsDosServicos)) {
-                throw new RegraDeNegocioException("Este profissional nao realiza todos os servicos escolhidos.");
-            }
-            return List.of(escolhido);
+            return List.of(buscarProfissionalHabilitado(tenantId, profissionalId, servicos));
         }
 
         return profissionalService.listarAtivos(tenantId).stream()
                 .filter(profissional -> realizaTodos(profissional, idsDosServicos))
                 .toList();
+    }
+
+    /**
+     * O profissional existe no negocio, esta ativo e realiza TODOS os servicos pedidos. Compartilhado com o
+     * cadastro pelo painel (AgendamentoService), que ignora o expediente mas nao estas regras.
+     */
+    Profissional buscarProfissionalHabilitado(Long tenantId, Long profissionalId, List<ServiceOffering> servicos) {
+        Profissional profissional = profissionalService.buscarPorIdETenant(tenantId, profissionalId);
+        if (!profissional.isAtivo()) {
+            throw new RegraDeNegocioException("Este profissional nao esta disponivel para agendamento.");
+        }
+        Set<Long> idsDosServicos = servicos.stream().map(BaseEntity::getId).collect(Collectors.toSet());
+        if (!realizaTodos(profissional, idsDosServicos)) {
+            throw new RegraDeNegocioException("Este profissional nao realiza todos os servicos escolhidos.");
+        }
+        return profissional;
     }
 
     private boolean realizaTodos(Profissional profissional, Set<Long> idsDosServicos) {

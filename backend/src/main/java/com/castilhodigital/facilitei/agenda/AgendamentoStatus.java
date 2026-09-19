@@ -41,6 +41,10 @@ public enum AgendamentoStatus {
     public static final List<AgendamentoStatus> QUE_OCUPAM_HORARIO =
             Arrays.stream(values()).filter(AgendamentoStatus::ocupaHorario).toList();
 
+    /** Os que seguram o horario por tempo limitado (exigem expira_em). */
+    public static final List<AgendamentoStatus> EM_ESPERA =
+            Arrays.stream(values()).filter(AgendamentoStatus::aguardaSinal).toList();
+
     private final boolean ocupaHorario;
 
     AgendamentoStatus(boolean ocupaHorario) {
