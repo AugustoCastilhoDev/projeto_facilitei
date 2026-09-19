@@ -1,5 +1,6 @@
 package com.castilhodigital.facilitei.agenda;
 
+import java.time.Clock;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,10 +20,11 @@ class AgendamentoExpiracaoScheduler {
     private static final long INTERVALO_MS = 60 * 1000;
 
     private final AgendamentoService agendamentoService;
+    private final Clock clock;
 
     @Scheduled(fixedRate = INTERVALO_MS)
     void expirarVencidos() {
-        int expirados = agendamentoService.expirarVencidos(Instant.now());
+        int expirados = agendamentoService.expirarVencidos(Instant.now(clock));
         if (expirados > 0) {
             log.info("{} agendamento(s) expirado(s) por falta de pagamento do sinal.", expirados);
         }

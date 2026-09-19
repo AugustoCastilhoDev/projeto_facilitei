@@ -42,6 +42,10 @@ public class DisponibilidadeService {
     public record HorarioDisponivel(Instant inicio, Instant fim, Long profissionalId, String profissionalNome) {
     }
 
+    /** Profissional que o cliente pode escolher para os servicos pedidos. */
+    public record ProfissionalResumo(Long id, String nome) {
+    }
+
     private final TenantService tenantService;
     private final ServiceOfferingService serviceOfferingService;
     private final ProfissionalService profissionalService;
@@ -94,6 +98,15 @@ public class DisponibilidadeService {
             }
         }
         return new ArrayList<>(resultado.values());
+    }
+
+    /** Passo "escolher profissional" da tela publica: quem realiza TODOS os servicos escolhidos, na ordem de nome. */
+    @Transactional(readOnly = true)
+    public List<ProfissionalResumo> listarProfissionaisHabilitados(Long tenantId, Collection<Long> servicoIds) {
+        List<ServiceOffering> servicos = buscarServicosAtivos(tenantId, servicoIds);
+        return buscarProfissionaisCandidatos(tenantId, null, servicos).stream()
+                .map(profissional -> new ProfissionalResumo(profissional.getId(), profissional.getNome()))
+                .toList();
     }
 
     private Map<Long, List<PeriodoOcupado>> ocupadosPorProfissional(List<Long> ids, Instant inicio, Instant fim) {

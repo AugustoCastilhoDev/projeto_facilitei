@@ -16,9 +16,13 @@ import java.time.LocalTime;
 import java.util.HashSet;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /** Base dos testes da agenda com Postgres real: monta negocio, profissionais, servicos e agendamentos com poucas linhas. */
+@AutoConfigureMockMvc
+@Import(RelogioFixoDeTeste.class)
 abstract class AgendaIntegrationTest extends PostgresIntegrationTest {
 
     /**

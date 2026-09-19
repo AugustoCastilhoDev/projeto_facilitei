@@ -27,7 +27,7 @@ abstract class CenarioBarbeariaIntegrationTest extends AgendaIntegrationTest {
 
     protected static final ZoneId SAO_PAULO = ZoneId.of("America/Sao_Paulo");
     protected static final LocalDate SEGUNDA = LocalDate.of(2026, 9, 21);
-    protected static final Instant AGORA = LocalDate.of(2026, 9, 20).atTime(12, 0).atZone(SAO_PAULO).toInstant();
+    protected static final Instant AGORA = RelogioFixoDeTeste.AGORA;
     protected static final String TELEFONE_DIGITADO = "(63) 99999-9999";
     protected static final String TELEFONE = "5563999999999";
     protected static final String CPF_VALIDO = "52998224725";

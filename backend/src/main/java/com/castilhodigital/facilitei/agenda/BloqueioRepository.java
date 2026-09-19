@@ -3,6 +3,7 @@ package com.castilhodigital.facilitei.agenda;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -18,5 +19,11 @@ public interface BloqueioRepository extends JpaRepository<Bloqueio, Long> {
             + "AND b.inicio < :fim AND b.fim > :inicio")
     List<Bloqueio> findSobrepostos(@Param("profissionalIds") Collection<Long> profissionalIds,
                                     @Param("inicio") Instant inicio, @Param("fim") Instant fim);
+
+    /** Bloqueios que ainda nao terminaram (em andamento ou futuros) - os que interessam na tela do painel. */
+    List<Bloqueio> findByProfissionalIdAndFimAfterOrderByInicio(Long profissionalId, Instant agora);
+
+    /** Sempre pelo negocio (via profissional): o id do bloqueio sozinho nunca basta para apagar. */
+    Optional<Bloqueio> findByIdAndProfissionalIdAndProfissionalTenantId(Long id, Long profissionalId, Long tenantId);
 
 }

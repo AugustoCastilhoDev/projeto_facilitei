@@ -7,6 +7,7 @@ import com.castilhodigital.facilitei.agenda.sinal.CobrancaSinalResolver;
 import com.castilhodigital.facilitei.tenant.Tenant;
 import com.castilhodigital.facilitei.tenant.TenantService;
 import java.time.Instant;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -53,6 +54,31 @@ public class AgendamentoCheckoutService {
 
         AgendamentoView vinculado = agendamentoService.vincularCobranca(criado.id(), cobranca);
         return new CheckoutAgendamento(vinculado, cobranca);
+    }
+
+    /**
+     * Estado de um agendamento para a pagina publica (que faz polling ate o webhook confirmar o pagamento).
+     * Enquanto o sinal esta pendente, rebusca o QR no meio de pagamento - ele nao e persistido, e assim a tela
+     * de pagamento sobrevive a um F5. Se o meio de pagamento estiver fora do ar, devolve so o "copia e cola".
+     */
+    public CheckoutAgendamento consultar(String slug, UUID codigoPublico) {
+        AgendamentoView agendamento = agendamentoService.buscarPorCodigoPublico(slug, codigoPublico);
+        if (agendamento.status() != AgendamentoStatus.AGUARDANDO_PAGAMENTO || agendamento.pixPayload() == null) {
+            return new CheckoutAgendamento(agendamento, null);
+        }
+
+        String qrCode = null;
+        if (agendamento.cobrancaExternaId() != null) {
+            try {
+                Tenant tenant = tenantService.buscarPorId(agendamento.tenantId());
+                qrCode = cobrancaSinalResolver.exigir(tenant)
+                        .buscarQrCodeBase64(tenant, agendamento.cobrancaExternaId()).orElse(null);
+            } catch (RuntimeException ex) {
+                log.warn("Nao foi possivel rebuscar o QR do agendamento {}: {}", agendamento.id(), ex.getMessage());
+            }
+        }
+        return new CheckoutAgendamento(agendamento,
+                new CobrancaSinal(agendamento.cobrancaExternaId(), agendamento.pixPayload(), qrCode));
     }
 
 }
